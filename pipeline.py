@@ -31,7 +31,7 @@ from matplotlib import rc
 
 
 rc('font',**{'family':'serif','serif':['Times']})
-rc('text', usetex=True)
+#rc('text', usetex=True)
 rc('axes', labelsize=22)
 rc('xtick', labelsize=22)
 rc('ytick', labelsize=22)
