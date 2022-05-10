@@ -9,6 +9,9 @@ from keras.callbacks import ReduceLROnPlateau, EarlyStopping
 
 from shift_tester import *
 
+import pandas as pd
+from autogluon.tabular import TabularPredictor, TabularDataset
+
 import keras
 import keras_resnet
 from keras import optimizers
@@ -17,6 +20,7 @@ from keras import optimizers
 class DifferenceClassifier(Enum):
     FFNNDCL = 1
     FLDA = 2
+    AUTOGLUON = 3
 
 
 class AnomalyDetection(Enum):
@@ -86,10 +90,45 @@ class ShiftLocator:
             return self.neural_network_difference_detector(X_tr, y_tr, X_te, y_te, bal=balanced)
         elif self.dc == DifferenceClassifier.FLDA:
             return self.fisher_lda_difference_detector(X_tr, X_te, balanced=balanced)
+        elif self.dc == DifferenceClassifier.AUTOGLUON:
+            return self.autogluon_witness(X_tr, y_tr, X_te, y_te, bal=balanced)
         elif self.ac == AnomalyDetection.OCSVM:
             return self.one_class_svm(X_tr, X_te, balanced=balanced)
 
+
     def most_likely_shifted_samples(self, model, X_te_new, y_te_new):
+        if self.dc == DifferenceClassifier.AUTOGLUON:
+            df_test = pd.DataFrame(X_te_new)
+            df_test['label'] = y_te_new
+            test_data = TabularDataset(df_test)
+            # Predict witness values.
+            y_te_new_pred = model.predict(test_data)
+
+            # # Get most anomalous indices sorted in descending order.
+            # most_conf_test_indices = np.argsort(y_te_new_pred[:,1])[::-1]
+            # most_conf_test_perc = np.sort(y_te_new_pred[:,1])[::-1]
+
+            # Test whether witness significance.
+            p_samp = y_te_new_pred[y_te_new == 1]
+            q_samp = y_te_new_pred[y_te_new == 0]
+            # print(len(p_samp), len(q_samp))
+            c = len(p_samp) / (len(p_samp) + len(q_samp))
+            # c = 1-c
+            signal = (np.mean(p_samp) - np.mean(q_samp))
+            p_val = 0
+            permutations = 300
+            for i in range(0, permutations):
+                np.random.shuffle(y_te_new_pred)
+                p_samp = y_te_new_pred[y_te_new == 1]
+                q_samp = y_te_new_pred[y_te_new == 0]
+                signal_perm = np.mean(p_samp) - np.mean(q_samp)
+
+                if signal <= np.float(signal_perm):
+                    p_val += np.float(1 / permutations)
+
+            # return most_conf_test_indices, most_conf_test_perc, p_val < self.sign_level, p_val
+            return None, None, p_val < self.sign_level, p_val
+
         if self.dc == DifferenceClassifier.FFNNDCL:
 
             # Predict class assignments.
@@ -125,6 +164,24 @@ class ShiftLocator:
             y_pred_te = model.predict(X_te_new)
             novelties = X_te_new[y_pred_te == -1]
             return novelties, None, -1
+
+    def autogluon_witness(self, X_tr, y_tr, X_te, y_te, bal=False):
+        D = X_tr.shape[1]
+        X_tr_dcl, y_tr_dcl, y_tr_old, X_te_dcl, y_te_dcl, y_te_old = self.__prepare_difference_detector(X_tr, y_tr,
+                                                                                                        X_te, y_te,
+                                                                                                        balanced=bal)
+        df_train = pd.DataFrame(X_tr_dcl)
+        df_train['label'] = y_tr_dcl
+        df_test = pd.DataFrame(X_te_dcl)
+        df_test['label'] = y_te_dcl
+
+        train_data = TabularDataset(df_train)
+        test_data = TabularDataset(df_test)
+        model = TabularPredictor(label="label", problem_type="regression", eval_metric="mean_squared_error",
+                                     verbosity=0).fit(train_data, presets='best_quality', time_limit=20)
+
+        return model, None, (X_tr_dcl, y_tr_dcl, y_tr_old, X_te_dcl, y_te_dcl, y_te_old)
+
 
     def fisher_lda_difference_detector(self, X_tr, X_te, balanced=False):
         X_tr_dcl, y_tr_dcl, X_te_dcl, y_te_dcl = self.__prepare_difference_detector(X_tr, X_te, balanced=balanced)

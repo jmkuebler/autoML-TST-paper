@@ -125,7 +125,8 @@ if not os.path.exists(path):
     os.makedirs(path)
 
 # Define DR methods.
-dr_techniques = [DimensionalityReduction.NoRed.value, DimensionalityReduction.PCA.value, DimensionalityReduction.SRP.value, DimensionalityReduction.UAE.value, DimensionalityReduction.TAE.value, DimensionalityReduction.BBSDs.value, DimensionalityReduction.BBSDh.value]
+dr_techniques = []
+# dr_techniques = [DimensionalityReduction.NoRed.value, DimensionalityReduction.PCA.value, DimensionalityReduction.SRP.value, DimensionalityReduction.UAE.value, DimensionalityReduction.TAE.value, DimensionalityReduction.BBSDs.value, DimensionalityReduction.BBSDh.value]
 if test_type == 'multiv':
     dr_techniques = [DimensionalityReduction.NoRed.value, DimensionalityReduction.PCA.value, DimensionalityReduction.SRP.value, DimensionalityReduction.UAE.value, DimensionalityReduction.TAE.value, DimensionalityReduction.BBSDs.value]
 if test_type == 'univ':
@@ -149,11 +150,13 @@ difference_samples = 20
 # Number of random runs to average results over.
 random_runs = 5
 
+
 # Significance level.
 sign_level = 0.05
 
 # Whether to calculate accuracy for malignancy quantification.
-calc_acc = True
+# calc_acc = True
+calc_acc = False
 
 # Define shift types.
 if sys.argv[2] == 'small_gn_shift':
@@ -225,6 +228,7 @@ red_models = [None] * len(DimensionalityReduction)
 
 # Iterate over all shifts in a shift class.
 for shift_idx, shift in enumerate(shifts):
+    print(shift)
 
     shift_path = path + shift + '/'
     if not os.path.exists(shift_path):
@@ -239,8 +243,8 @@ for shift_idx, shift in enumerate(shifts):
     dcl_accs = np.ones((len(samples), random_runs)) * (-1)
 
     # Average over a few random runs to quantify robustness.
-    for rand_run in range(random_runs):
-
+    for rand_run in range(0, random_runs-1):
+        rand_run = int(rand_run)
         print("Random run %s" % rand_run)
 
         rand_run_path = shift_path + str(rand_run) + '/'
@@ -319,7 +323,7 @@ for shift_idx, shift in enumerate(shifts):
                     continue
 
                 # Characterize shift via domain classifier.
-                shift_locator = ShiftLocator(orig_dims, dc=DifferenceClassifier.FFNNDCL, sign_level=sign_level)
+                shift_locator = ShiftLocator(orig_dims, dc=DifferenceClassifier.AUTOGLUON, sign_level=sign_level)
                 model, score, (X_tr_dcl, y_tr_dcl, y_tr_old, X_te_dcl, y_te_dcl, y_te_old) = shift_locator.build_model(X_tr_3, y_tr_3, X_te_3, y_te_3)
                 test_indices, test_perc, dec, p_val = shift_locator.most_likely_shifted_samples(model, X_te_dcl, y_te_dcl)
 
@@ -327,71 +331,71 @@ for shift_idx, shift in enumerate(shifts):
 
                 rand_run_p_vals[si,:,rand_run] = np.append(ind_od_p_vals.flatten(), p_val)
 
-                if datset == 'mnist':
-                    samp_shape = (28,28)
-                    cmap = 'gray'
-                elif datset == 'cifar10' or datset == 'cifar10_1' or datset == 'coil100' or datset == 'svhn':
-                    samp_shape = (32,32,3)
-                    cmap = None
-                elif datset == 'mnist_usps':
-                    samp_shape = (16,16)
-                    cmap = 'gray'
-
-                if dec:
-                    most_conf_test_indices = test_indices[test_perc > 0.8]
-
-                    top_same_samples_path = sample_path + 'top_same'
-                    if not os.path.exists(top_same_samples_path):
-                        os.makedirs(top_same_samples_path)
-
-                    rev_top_test_ind = test_indices[::-1][:difference_samples]
-                    least_conf_samples = X_te_dcl[rev_top_test_ind]
-                    for j in range(len(rev_top_test_ind)):
-                        samp = least_conf_samples[j, :]
-                        fig = plt.imshow(samp.reshape(samp_shape), cmap=cmap)
-                        plt.axis('off')
-                        fig.axes.get_xaxis().set_visible(False)
-                        fig.axes.get_yaxis().set_visible(False)
-                        plt.savefig("%s/%s.pdf" % (top_same_samples_path, j), bbox_inches='tight', pad_inches=0)
-                        plt.clf()
-
-                        j = j + 1
-
-                    top_different_samples_path = sample_path + 'top_diff'
-                    if not os.path.exists(top_different_samples_path):
-                        os.makedirs(top_different_samples_path)
-
-                    if calc_acc:
-                        print('-------------------')
-                        print("Len of most conf: %s" % len(most_conf_test_indices))
-                        print(y_te_old[most_conf_test_indices])
-                        if len(most_conf_test_indices) > 0:
-                            y_te_dcl_pred = shift_detector.classify_data(X_tr_3, y_tr_3, X_val_3, y_val_3,
-                                                                            X_te_dcl[most_conf_test_indices],
-                                                                            y_te_dcl[most_conf_test_indices],
-                                                                            orig_dims, nb_classes)
-                            print(y_te_dcl_pred)
-                            dcl_class_acc = np.sum(np.equal(y_te_dcl_pred, y_te_old[most_conf_test_indices])
-                                                    .astype(int))/len(y_te_dcl_pred)
-                            dcl_accs[si,rand_run] = dcl_class_acc
-                            print("dcl_class_acc: ", dcl_class_acc)
-                        print('-------------------')
-
-                    most_conf_samples = X_te_dcl[most_conf_test_indices]
-                    for j in range(len(most_conf_samples)):
-                        if j < difference_samples:
-                            samp = most_conf_samples[j,:]
-                            fig = plt.imshow(samp.reshape(samp_shape), cmap=cmap)
-                            plt.axis('off')
-                            fig.axes.get_xaxis().set_visible(False)
-                            fig.axes.get_yaxis().set_visible(False)
-                            plt.savefig("%s/test_%s.pdf" % (top_different_samples_path, j), bbox_inches='tight',
-                                        pad_inches=0)
-                            plt.clf()
-    
-                            j = j + 1
-                        else:
-                            break
+                # if datset == 'mnist':
+                #     samp_shape = (28,28)
+                #     cmap = 'gray'
+                # elif datset == 'cifar10' or datset == 'cifar10_1' or datset == 'coil100' or datset == 'svhn':
+                #     samp_shape = (32,32,3)
+                #     cmap = None
+                # elif datset == 'mnist_usps':
+                #     samp_shape = (16,16)
+                #     cmap = 'gray'
+                #
+                # if dec:
+                #     most_conf_test_indices = test_indices[test_perc > 0.8]
+                #
+                #     top_same_samples_path = sample_path + 'top_same'
+                #     if not os.path.exists(top_same_samples_path):
+                #         os.makedirs(top_same_samples_path)
+                #
+                #     rev_top_test_ind = test_indices[::-1][:difference_samples]
+                #     least_conf_samples = X_te_dcl[rev_top_test_ind]
+                #     for j in range(len(rev_top_test_ind)):
+                #         samp = least_conf_samples[j, :]
+                #         fig = plt.imshow(samp.reshape(samp_shape), cmap=cmap)
+                #         plt.axis('off')
+                #         fig.axes.get_xaxis().set_visible(False)
+                #         fig.axes.get_yaxis().set_visible(False)
+                #         plt.savefig("%s/%s.pdf" % (top_same_samples_path, j), bbox_inches='tight', pad_inches=0)
+                #         plt.clf()
+                #
+                #         j = j + 1
+                #
+                #     top_different_samples_path = sample_path + 'top_diff'
+                #     if not os.path.exists(top_different_samples_path):
+                #         os.makedirs(top_different_samples_path)
+                #
+                #     if calc_acc:
+                #         print('-------------------')
+                #         print("Len of most conf: %s" % len(most_conf_test_indices))
+                #         print(y_te_old[most_conf_test_indices])
+                #         if len(most_conf_test_indices) > 0:
+                #             y_te_dcl_pred = shift_detector.classify_data(X_tr_3, y_tr_3, X_val_3, y_val_3,
+                #                                                             X_te_dcl[most_conf_test_indices],
+                #                                                             y_te_dcl[most_conf_test_indices],
+                #                                                             orig_dims, nb_classes)
+                #             print(y_te_dcl_pred)
+                #             dcl_class_acc = np.sum(np.equal(y_te_dcl_pred, y_te_old[most_conf_test_indices])
+                #                                     .astype(int))/len(y_te_dcl_pred)
+                #             dcl_accs[si,rand_run] = dcl_class_acc
+                #             print("dcl_class_acc: ", dcl_class_acc)
+                #         print('-------------------')
+                #
+                #     most_conf_samples = X_te_dcl[most_conf_test_indices]
+                #     for j in range(len(most_conf_samples)):
+                #         if j < difference_samples:
+                #             samp = most_conf_samples[j,:]
+                #             fig = plt.imshow(samp.reshape(samp_shape), cmap=cmap)
+                #             plt.axis('off')
+                #             fig.axes.get_xaxis().set_visible(False)
+                #             fig.axes.get_yaxis().set_visible(False)
+                #             plt.savefig("%s/test_%s.pdf" % (top_different_samples_path, j), bbox_inches='tight',
+                #                         pad_inches=0)
+                #             plt.clf()
+                #
+                #             j = j + 1
+                #         else:
+                #             break
 
 
                     # most_conf_samples = X_te_dcl[most_conf_test_indices]
@@ -426,8 +430,8 @@ for shift_idx, shift in enumerate(shifts):
 
         np.savetxt("%s/dr_method_p_vals.csv" % rand_run_path, rand_run_p_vals[:,:,rand_run], delimiter=",")
 
-        np.random.seed(seed)
-        set_random_seed(seed)
+        # np.random.seed(seed)
+        # set_random_seed(seed)
 
     mean_p_vals = np.mean(rand_run_p_vals, axis=2)
     std_p_vals = np.std(rand_run_p_vals, axis=2)
