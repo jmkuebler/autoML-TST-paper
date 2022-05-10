@@ -423,7 +423,7 @@ for shift_idx, shift in enumerate(shifts):
             plt.semilogx(np.array(samples), rand_run_p_vals[:,dr_idx,rand_run], format[dr], color=colors[dr], label="%s" % DimensionalityReduction(dr).name)
         plt.axhline(y=sign_level, color='k')
         plt.xlabel('Number of samples from test')
-        plt.ylabel('$p$-value')
+        plt.ylabel('p-value')
         plt.savefig("%s/dr_sample_comp_noleg.pdf" % rand_run_path, bbox_inches='tight')
         plt.legend()
         plt.savefig("%s/dr_sample_comp.pdf" % rand_run_path, bbox_inches='tight')
@@ -497,8 +497,8 @@ for shift_idx, shift in enumerate(shifts):
         np.savetxt("%s/accs.csv" % shift_path, accs, delimiter=",")
         np.savetxt("%s/dcl_accs.csv" % shift_path, dcl_accs, delimiter=",")
 
-        errorfill(np.array(samples), mean_val_accs, std_val_accs, fmt='-o', color=colors[0], label=r"$p$")
-        errorfill(np.array(samples), mean_te_accs, std_te_accs, fmt='-s', color=colors[3], label=r"$q$")
+        errorfill(np.array(samples), mean_val_accs, std_val_accs, fmt='-o', color=colors[0], label=r"p")
+        errorfill(np.array(samples), mean_te_accs, std_te_accs, fmt='-s', color=colors[3], label=r"q")
         if len(smpl_array) > 0:
             errorfill(smpl_array, mean_dcl_accs, std_dcl_accs, fmt='--X', color=colors[7], label=r"Classif")
         plt.xlabel('Number of samples from test')
@@ -513,7 +513,7 @@ for shift_idx, shift in enumerate(shifts):
         errorfill(np.array(samples), mean_p_vals[:,dr_idx], std_p_vals[:,dr_idx], fmt=format[dr], color=colors[dr], label="%s" % DimensionalityReduction(dr).name)
     plt.axhline(y=sign_level, color='k')
     plt.xlabel('Number of samples from test')
-    plt.ylabel('$p$-value')
+    plt.ylabel('p-value')
     plt.savefig("%s/dr_sample_comp_noleg.pdf" % shift_path, bbox_inches='tight')
     plt.legend()
     plt.savefig("%s/dr_sample_comp.pdf" % shift_path, bbox_inches='tight')
@@ -522,7 +522,7 @@ for shift_idx, shift in enumerate(shifts):
     for dr_idx, dr in enumerate(dr_techniques_plot):
         errorfill(np.array(samples), mean_p_vals[:,dr_idx], std_p_vals[:,dr_idx], fmt=format[dr], color=colors[dr])
         plt.xlabel('Number of samples from test')
-        plt.ylabel('$p$-value')
+        plt.ylabel('p-value')
         plt.axhline(y=sign_level, color='k', label='sign_level')
         plt.savefig("%s/%s_conf.pdf" % (shift_path, DimensionalityReduction(dr).name), bbox_inches='tight')
         plt.clf()
@@ -544,7 +544,7 @@ for dr_idx, dr in enumerate(dr_techniques_plot):
     for idx, shift in enumerate(shifts):
         errorfill(np.array(samples), mean_p_vals[:, idx], std_p_vals[:, idx], fmt=linestyles[idx]+markers[dr], color=colorscale(colors[dr],brightness[idx]), label="%s" % shift.replace('_', '\\_'))
     plt.xlabel('Number of samples from test')
-    plt.ylabel('$p$-value')
+    plt.ylabel('p-value')
     plt.axhline(y=sign_level, color='k')
     plt.savefig("%s/%s_conf_noleg.pdf" % (path, DimensionalityReduction(dr).name), bbox_inches='tight')
     plt.legend()
