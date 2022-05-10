@@ -37,7 +37,7 @@ rc('xtick', labelsize=22)
 rc('ytick', labelsize=22)
 rc('legend', fontsize=13)
 
-mpl.rcParams['text.latex.preamble'] = [r'\usepackage{amsmath}']
+#mpl.rcParams['text.latex.preamble'] = [r'\usepackage{amsmath}']
 
 
 def clamp(val, minimum=0, maximum=255):
