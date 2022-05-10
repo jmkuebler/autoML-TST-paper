@@ -118,7 +118,7 @@ test_type = sys.argv[3]
 time_limit = int(sys.argv[4])
 
 # Define results path and create directory.
-path = './paper_results/'
+path = sys.argv[5]
 path += test_type + '/'
 path += datset + '_'
 path += sys.argv[2] + '/'
