@@ -30,7 +30,7 @@ time_limit = int(sys.argv[2])
 seed = int(sys.argv[3])
 
 # Define results path and create directory.
-path = './results_higgs_autogluon/'
+path = sys.argv[4]
 path += str(n) + '/'
 path += str(time_limit) + '/'
 path += str(seed) + '/'
@@ -83,7 +83,7 @@ def snr_score(estimator, x_test, y_test, permutations=None):
 
 
 # Load data
-data = pickle.load(open('./HIGGS_TST.pckl', 'rb'))
+data = pickle.load(open('./datasets/HIGGS_TST.pckl', 'rb'))
 dataX = data[0]
 dataY = data[1]
 
