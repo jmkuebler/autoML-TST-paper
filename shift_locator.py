@@ -16,6 +16,8 @@ import keras
 import keras_resnet
 from keras import optimizers
 
+import shutil
+
 
 class DifferenceClassifier(Enum):
     FFNNDCL = 1
@@ -103,7 +105,10 @@ class ShiftLocator:
             test_data = TabularDataset(df_test)
             # Predict witness values.
             y_te_new_pred = model.predict(test_data)
-            print(model.path)
+            model_path = model.path
+            del model
+            shutil.rmtree(model_path)
+
 
             # # Get most anomalous indices sorted in descending order.
             # most_conf_test_indices = np.argsort(y_te_new_pred[:,1])[::-1]
