@@ -27,7 +27,7 @@ seed = int(sys.argv[3])
 method = str(sys.argv[4])
 
 # Define results path and create directory.
-path = './results_blobs_autogluon/'
+path = sys.argv[5]
 path += method + '/'
 path += str(n) + '/'
 path += str(time_limit) + '/'
@@ -187,7 +187,7 @@ for i in pbar:
         results_discrete.append(1) if p < 0.05 else results_discrete.append(0)
     # delete models
     model_path = predictor.path
-    shutil.rmtree(model_path[:-1])
+    shutil.rmtree(model_path)
     pbar.set_description("n= %.0f" % n_per_class + " witness power: %.4f" % np.mean(results_witness) + " current p-value %.4f" %p)
 
 with open(f'{path}results.npy', 'wb') as f:
