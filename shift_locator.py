@@ -184,7 +184,7 @@ class ShiftLocator:
         train_data = TabularDataset(df_train)
         test_data = TabularDataset(df_test)
         model = TabularPredictor(label="label", problem_type="regression", eval_metric="mean_squared_error",
-                                     verbosity=0).fit(train_data, presets='best_quality', time_limit=time_limit, ag_args_fit={'num_gpus': 1})
+                                     verbosity=0).fit(train_data, presets='best_quality', time_limit=time_limit)
 
         return model, None, (X_tr_dcl, y_tr_dcl, y_tr_old, X_te_dcl, y_te_dcl, y_te_old)
 
