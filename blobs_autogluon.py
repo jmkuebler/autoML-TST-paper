@@ -142,7 +142,7 @@ n_per_class = 9*n
 results_witness = []
 results_discrete = []
 warnings.filterwarnings("ignore")
-pbar = tqdm(range(10))
+pbar = tqdm(range(100))
 for i in pbar:
     s1,s2 = sample_blobs_Q(n_per_class, sigma_mx_2, rs=rng)
     # # print(s1[:5])
