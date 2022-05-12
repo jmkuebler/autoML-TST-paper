@@ -134,7 +134,7 @@ for i in pbar:
     p = snr_score(predictor, test_data, Y_test, permutations=300)
     results_witness.append(1) if p < 0.05 else results_witness.append(0)
     model_path = predictor.path
-    shutil.rmtree(model_path[:-1])
+    shutil.rmtree(model_path)
 
     pbar.set_description(
         "n= %.0f" % n + " witness power: %.4f" % np.mean(results_witness) + " current p-value %.4f" % p)
