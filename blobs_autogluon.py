@@ -8,7 +8,9 @@ run for
 n: 10, 20, 30, 40, 50
 time_limit: 60, 300, 600
 seed: 0, 1, ..., 49
-method: 'classification', 'regression'
+method: classification, regression
+
+runtime of single experiment is roughly 10 * time_limit + overheads
 """
 
 import warnings
