@@ -40,6 +40,7 @@ if not os.path.exists(path):
 
 print("train/test samples per dist %.0f" % n)
 print("time limit in seconds %.0f" % time_limit)
+print("seed %.f" % seed)
 
 
 def snr_score(estimator, x_test, y_test, permutations=None):
