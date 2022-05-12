@@ -8,9 +8,7 @@ run for
 n: 10, 20, 30, 40, 50
 time_limit: 60, 300, 600
 seed: 0, 1, ..., 49
-method: classification, regression
-
-runtime of single experiment is roughly 10 * time_limit + overheads
+method: 'classification', 'regression'
 """
 
 import warnings
@@ -38,9 +36,12 @@ if not os.path.exists(path):
     os.makedirs(path)
 
 
-def snr_score(estimator, x_test, y_test, permutations=None):
+def snr_score(estimator, x_test, y_test, permutations=None, discrete=False):
     # pred = estimator.predict(x_test).reshape(-1, )
-    pred = estimator.predict_proba(x_test)
+    if discrete:
+        pred = estimator.predict(x_test)
+    else:
+        pred = np.array(estimator.predict_proba(x_test))[:,1]
 
     pred = np.array(pred)
     y_test = np.array(y_test).reshape(-1, )
@@ -139,6 +140,7 @@ np.random.seed(1)
 rng = np.random.RandomState(seed=seed) # used to draw the samples
 n_per_class = 9*n
 results_witness = []
+results_discrete = []
 warnings.filterwarnings("ignore")
 pbar = tqdm(range(10))
 for i in pbar:
@@ -147,7 +149,7 @@ for i in pbar:
     s1test, s2test = sample_blobs_Q(n_per_class, sigma_mx_2, rs=rng)
 
     # # this would be to investigate type-I error
-
+    #
     # s1,s2 = sample_blobs(n_per_class, rs=rng)
     # s1test, s2test = sample_blobs(n_per_class, rs=rng)
 
@@ -178,18 +180,20 @@ for i in pbar:
     else:
         print("No valid method selected. Should be <classification> or <regression>")
 
-
-#
-    # snr = snr_score(grid_search.best_estimator_, X_test, Y_test)
-    # tau = np.sqrt(len(X_test)) * snr
-    # p = 1 - norm.cdf(tau)
-    # with permutations we return directly the pvalue
     p = snr_score(predictor, test_data, Y_test, permutations=300)
+    results_witness.append(1) if p < 0.05 else results_witness.append(0)
+    if method == 'classification':
+        p = snr_score(predictor, test_data, Y_test, permutations=300, discrete=True)
+        results_discrete.append(1) if p < 0.05 else results_discrete.append(0)
+    # delete models
     model_path = predictor.path
     shutil.rmtree(model_path[:-1])
-    results_witness.append(1) if p < 0.05 else results_witness.append(0)
-
     pbar.set_description("n= %.0f" % n_per_class + " witness power: %.4f" % np.mean(results_witness) + " current p-value %.4f" %p)
 
 with open(f'{path}results.npy', 'wb') as f:
     np.save(f, results_witness)
+
+if method == 'classification':
+    with open(f'{path}results_discrete.npy', 'wb') as f:
+        np.save(f, results_discrete)
+
