@@ -103,7 +103,8 @@ class ShiftLocator:
             test_data = TabularDataset(df_test)
             # Predict witness values.
             y_te_new_pred = model.predict(test_data)
-            model.delete_models(models_to_keep=[], dry_run=False)
+            #model.delete_models(models_to_keep=[], dry_run=False)
+            model.delete_from_disk()
 
             # # Get most anomalous indices sorted in descending order.
             # most_conf_test_indices = np.argsort(y_te_new_pred[:,1])[::-1]
