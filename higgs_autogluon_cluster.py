@@ -94,7 +94,7 @@ np.random.seed(seed)
 rng = np.random.RandomState(seed=seed)
 results_witness = []
 # warnings.filterwarnings("ignore")
-pbar = tqdm(range(10))
+pbar = tqdm(range(100))
 for i in pbar:
     ## ---- Draw Data ---- ###
     # Generate Higgs (P,Q)
