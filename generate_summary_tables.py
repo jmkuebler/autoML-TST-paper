@@ -243,7 +243,10 @@ for dataset in datasets:
         if test_type == 'multiv':
             shift_decision_array_sh = shift_decision_array_sh[:,:,3]
         else:
-            shift_decision_array_sh = shift_decision_array_sh[:,:,5]
+            if shift_decision_array_sh.shape[2] > 1:
+                shift_decision_array_sh = shift_decision_array_sh[:,:,5]
+            else:
+                shift_decision_array_sh = shift_decision_array_sh[:, :, 0]
 
         # Shift percentage
         if shift_decision_array_sh.shape[0] == 7 and test_type == 'univ':
