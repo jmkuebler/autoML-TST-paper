@@ -41,11 +41,9 @@ def snr_score(estimator, x_test, y_test, permutations=None, discrete=False):
     if discrete:
         pred = estimator.predict(x_test)
     else:
-        out = np.array(estimator.predict_proba(x_test))
-        print(out)
-        print(out.shape)
-        print(out.ndim)
-        pred = out[:,1]
+        pred = np.array(estimator.predict_proba(x_test))
+        if pred.ndim == 2:
+            pred = pred[:, 1]
 
     pred = np.array(pred)
     y_test = np.array(y_test).reshape(-1, )
