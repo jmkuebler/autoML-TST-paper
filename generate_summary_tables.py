@@ -86,10 +86,7 @@ if test_type == 'multiv':
                      DimensionalityReduction.SRP.value, DimensionalityReduction.UAE.value,
                      DimensionalityReduction.TAE.value, DimensionalityReduction.BBSDs.value]
 else:
-    dr_techniques = [DimensionalityReduction.NoRed.value, DimensionalityReduction.PCA.value,
-                     DimensionalityReduction.SRP.value, DimensionalityReduction.UAE.value,
-                     DimensionalityReduction.TAE.value, DimensionalityReduction.BBSDs.value,
-                     DimensionalityReduction.BBSDh.value, DimensionalityReduction.Classif.value]
+    dr_techniques = [DimensionalityReduction.Classif.value]
 
 # Define number of random runs to average results over. 
 rand_runs = 5
