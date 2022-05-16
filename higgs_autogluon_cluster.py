@@ -26,7 +26,10 @@ from autogluon.tabular import TabularPredictor, TabularDataset
 import pandas as pd
 
 n = int(sys.argv[1])
-time_limit = int(sys.argv[2])
+if sys.argv[2] == 'None':
+    time_limit = None
+else:
+    time_limit = int(sys.argv[2])
 seed = int(sys.argv[3])
 
 # Define results path and create directory.
@@ -124,7 +127,7 @@ for i in pbar:
     train_data = TabularDataset(df_train)
     test_data = TabularDataset(df_test)
     predictor = TabularPredictor(label="label", problem_type="regression", eval_metric="mean_squared_error",
-                                 verbosity=0).fit(train_data, presets="best_quality", time_limit=time_limit)
+                                 verbosity=0).fit(train_data, time_limit=time_limit)
 
     #
     # snr = snr_score(grid_search.best_estimator_, X_test, Y_test)
