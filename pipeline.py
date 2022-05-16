@@ -121,6 +121,12 @@ if len(sys.argv) > 6:
 else:
     pretrained = False
 print('Using pretrained model: %s' % pretrained)
+if len(sys.argv > 7):
+    method = sys.argv[7]
+    not_discrete = sys.argv[8] == 'True'
+else:
+    method = 'regression'
+    not_discrete = True
 
 # Define results path and create directory.
 path = sys.argv[5]
@@ -342,8 +348,8 @@ for shift_idx, shift in enumerate(shifts):
                     test_indices, test_perc, dec, p_val = shift_locator.most_likely_shifted_samples(model, X_te_dcl, y_te_dcl)
                 else:
                     shift_locator = ShiftLocator(orig_dims, dc=DifferenceClassifier.AUTOGLUON, sign_level=sign_level)
-                    model, score, (X_tr_dcl, y_tr_dcl, y_tr_old, X_te_dcl, y_te_dcl, y_te_old) = shift_locator.build_model(X_tr_3, y_tr_3, X_te_3, y_te_3, time_limit=time_limit)
-                    test_indices, test_perc, dec, p_val = shift_locator.most_likely_shifted_samples(model, X_te_dcl, y_te_dcl)
+                    model, score, (X_tr_dcl, y_tr_dcl, y_tr_old, X_te_dcl, y_te_dcl, y_te_old) = shift_locator.build_model(X_tr_3, y_tr_3, X_te_3, y_te_3, time_limit=time_limit, method=method)
+                    test_indices, test_perc, dec, p_val = shift_locator.most_likely_shifted_samples(model, X_te_dcl, y_te_dcl, not_discrete=not_discrete)
 
                 # K.clear_session()
 
