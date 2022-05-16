@@ -42,7 +42,7 @@ if not os.path.exists(path):
 
 
 print("train/test samples per dist %.0f" % n)
-print("time limit in seconds %.0f" % time_limit)
+print("time limit in seconds %s" % str(time_limit))
 print("seed %.f" % seed)
 
 
