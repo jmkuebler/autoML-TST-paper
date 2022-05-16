@@ -117,7 +117,7 @@ datset = sys.argv[1]
 test_type = sys.argv[3]
 time_limit = int(sys.argv[4])
 if len(sys.argv) > 6:
-    pretrained = sys.argv[6]
+    pretrained = sys.argv[6] == 'True'
 else:
     pretrained = False
 print('Using pretrained model: %s' % pretrained)
@@ -331,6 +331,7 @@ for shift_idx, shift in enumerate(shifts):
 
                 # Characterize shift via domain classifier.
                 if pretrained: # work with the output of a pretrained network as is done for BBSDs
+                    print("Uses pretrained model")
                     # load pretrained model
                     shift_reductor = ShiftReductor(X_tr_3, y_tr_3, None, None, DimensionalityReduction(DimensionalityReduction.BBSDs.value), orig_dims, datset, dr_amount=32)
                     pretrained_model = shift_reductor.fit_reductor()
