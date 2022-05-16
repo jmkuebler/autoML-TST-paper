@@ -121,7 +121,7 @@ if len(sys.argv) > 6:
 else:
     pretrained = False
 print('Using pretrained model: %s' % pretrained)
-if len(sys.argv > 7):
+if len(sys.argv) > 7:
     method = sys.argv[7]
     not_discrete = sys.argv[8] == 'True'
 else:
