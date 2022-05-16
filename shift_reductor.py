@@ -69,6 +69,7 @@ class ShiftReductor:
         elif self.dr_tech == DimensionalityReduction.BBSDs:
             self.mod_path = './saved_models/' + self.datset + '_standard_class_model.h5'
             if os.path.exists(self.mod_path):
+                print("Loading model...")
                 return load_model(self.mod_path, custom_objects=keras_resnet.custom_objects)
             else:
                 print('Model could not be loaded.')
