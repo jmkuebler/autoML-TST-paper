@@ -116,10 +116,11 @@ make_keras_picklable()
 datset = sys.argv[1]
 test_type = sys.argv[3]
 time_limit = int(sys.argv[4])
-if len(sys.argv) > 5:
-    pretrained = sys.argv[5]
+if len(sys.argv) > 6:
+    pretrained = sys.argv[6]
 else:
     pretrained = False
+print('Using pretrained model: %s' % pretrained)
 
 # Define results path and create directory.
 path = sys.argv[5]
