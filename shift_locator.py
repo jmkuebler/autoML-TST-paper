@@ -105,11 +105,11 @@ class ShiftLocator:
             df_test['label'] = y_te_new
             test_data = TabularDataset(df_test)
             # Predict witness values.
-            if not not_discrete:
+            if not_discrete:
+                y_te_new_pred = model.predict(test_data)
+            else:
                 y_te_new_pred = model.predict_proba(test_data)
                 y_te_new_pred = np.array(y_te_new_pred)[:, 1]
-            else:
-                y_te_new_pred = model.predict(test_data)
             model_path = model.path
             del model
             shutil.rmtree(model_path)
