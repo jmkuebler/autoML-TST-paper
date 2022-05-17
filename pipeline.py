@@ -128,6 +128,9 @@ else:
     method = 'regression'
     not_discrete = True
 
+print('Fitting method to use: %s' % method)
+print('Use discrete features: %s' % str(not_discrete))
+
 # Define results path and create directory.
 path = sys.argv[5]
 path += test_type + '/'
@@ -344,8 +347,8 @@ for shift_idx, shift in enumerate(shifts):
                     X_tr_red = shift_reductor.reduce(pretrained_model, X_val_3)
                     X_te_red = shift_reductor.reduce(pretrained_model, X_te_3)
                     shift_locator = ShiftLocator(orig_dims, dc=DifferenceClassifier.AUTOGLUON, sign_level=sign_level)
-                    model, score, (X_tr_dcl, y_tr_dcl, y_tr_old, X_te_dcl, y_te_dcl, y_te_old) = shift_locator.build_model(X_tr_red, y_val_3, X_te_red, y_te_3, time_limit=time_limit)
-                    test_indices, test_perc, dec, p_val = shift_locator.most_likely_shifted_samples(model, X_te_dcl, y_te_dcl)
+                    model, score, (X_tr_dcl, y_tr_dcl, y_tr_old, X_te_dcl, y_te_dcl, y_te_old) = shift_locator.build_model(X_tr_red, y_val_3, X_te_red, y_te_3, time_limit=time_limit, method=method)
+                    test_indices, test_perc, dec, p_val = shift_locator.most_likely_shifted_samples(model, X_te_dcl, y_te_dcl, not_discrete=not_discrete)
                 else:
                     shift_locator = ShiftLocator(orig_dims, dc=DifferenceClassifier.AUTOGLUON, sign_level=sign_level)
                     model, score, (X_tr_dcl, y_tr_dcl, y_tr_old, X_te_dcl, y_te_dcl, y_te_old) = shift_locator.build_model(X_tr_3, y_tr_3, X_te_3, y_te_3, time_limit=time_limit, method=method)

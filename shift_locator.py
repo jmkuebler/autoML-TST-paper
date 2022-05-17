@@ -189,7 +189,7 @@ class ShiftLocator:
         train_data = TabularDataset(df_train)
         test_data = TabularDataset(df_test)
         eval_metric = "accuracy" if method == "classification" else "mean_squared_error"
-        model = TabularPredictor(label="label", problem_type=method, eval_metric="accuracy",
+        model = TabularPredictor(label="label", problem_type=method, eval_metric=eval_metric,
                                      verbosity=0).fit(train_data, presets='best_quality', time_limit=time_limit)
 
         return model, None, (X_tr_dcl, y_tr_dcl, y_tr_old, X_te_dcl, y_te_dcl, y_te_old)
