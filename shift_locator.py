@@ -107,6 +107,7 @@ class ShiftLocator:
             # Predict witness values.
             if not not_discrete:
                 y_te_new_pred = model.predict_proba(test_data)
+                print(y_te_new_pred)
                 y_te_new_pred = y_te_new_pred[:, 1]
             else:
                 y_te_new_pred = model.predict(test_data)
