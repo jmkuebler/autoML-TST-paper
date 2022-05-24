@@ -7,7 +7,7 @@ n = int(sys.argv[1])
 time_limit = int(sys.argv[2])
 seed = int(sys.argv[3])
 path = sys.argv[4]
-control = sys.argv[5] in ["control"] # Optional
+control = sys.argv[5] == 'True' # Optional
 
 Sample size n: 500, 1000, 1500, 2000, 2500, 3000, 4000, 5000
 Runtime limit time_limit: 60, 300, 600
@@ -37,7 +37,7 @@ else:
     time_limit = int(sys.argv[2])
 seed = int(sys.argv[3])
 if len(sys.argv) > 5:
-    control = sys.argv[5] in ["control"]
+    control = sys.argv[5] == 'True'
 else:
     control = False
 
