@@ -9,7 +9,7 @@ control = sys.argv[6] in ["control"] # Optional
 Sample size n: 10, 20, 30, 40, 50
 Runtime limit time_limit: 60, 300, 600
 seed: 0, 1, 2, 3, 4
-method: 'classification', 'regression'
+method: classification, regression
 Folder to store results path: ./results
 Flag whether to run control experiment control: True, False
 """

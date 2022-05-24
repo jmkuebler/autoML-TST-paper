@@ -99,17 +99,17 @@ class ShiftLocator:
 
 
     def most_likely_shifted_samples(self, model, X_te_new, y_te_new,
-                                    not_discrete=True):
+                                    use_prob=True):
         if self.dc == DifferenceClassifier.AUTOGLUON:
             df_test = pd.DataFrame(X_te_new)
             df_test['label'] = y_te_new
             test_data = TabularDataset(df_test)
             # Predict witness values.
-            if not_discrete:
-                y_te_new_pred = model.predict(test_data)
-            else:
+            if use_prob:
                 y_te_new_pred = model.predict_proba(test_data)
                 y_te_new_pred = np.array(y_te_new_pred)[:, 1]
+            else:
+                y_te_new_pred = model.predict(test_data)
             model_path = model.path
             del model
             shutil.rmtree(model_path)

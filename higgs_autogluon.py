@@ -1,5 +1,5 @@
 """
-Requires the HIGGS dataset to be stored in the same directory
+Requires the HIGGS dataset to be stored in the datasets directory
 Download pickled file from here:
 https://drive.google.com/open?id=1sHIIFCoHbauk6Mkb6e8a_tp1qnvuUOCc
 
