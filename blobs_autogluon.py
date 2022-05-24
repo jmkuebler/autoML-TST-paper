@@ -3,12 +3,15 @@ n = int(sys.argv[1])
 time_limit = int(sys.argv[2])
 seed = int(sys.argv[3])
 method = str(sys.argv[4])
+path = sys.argv[5]
+control = sys.argv[6] in ["control"] # Optional
 
-run for
-n: 10, 20, 30, 40, 50
-time_limit: 60, 300, 600
-seed: 0, 1, ..., 49
+Sample size n: 10, 20, 30, 40, 50
+Runtime limit time_limit: 60, 300, 600
+seed: 0, 1, 2, 3, 4
 method: 'classification', 'regression'
+Folder to store results path: ./results
+Flag whether to run control experiment control: True, False
 """
 
 import warnings
@@ -25,8 +28,8 @@ n = int(sys.argv[1])
 time_limit = int(sys.argv[2])
 seed = int(sys.argv[3])
 method = str(sys.argv[4])
-if len(sys.argv) > 5:
-    control = sys.argv[5] in ["control"]
+if len(sys.argv) > 6:
+    control = sys.argv[6] in ["control"]
 else:
     control = False
 

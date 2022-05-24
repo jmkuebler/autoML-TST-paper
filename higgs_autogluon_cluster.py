@@ -3,12 +3,17 @@ Requires the HIGGS dataset to be stored in the same directory
 Download pickled file from here:
 https://drive.google.com/open?id=1sHIIFCoHbauk6Mkb6e8a_tp1qnvuUOCc
 
-script takes 3 arguments: n (samplesize), time_limit, and seed.
-Script runs 10 repetitions.
-It should be run for all combinations of:
-n: 5000, 4000, 2500, 1500, 1000, 500
-time_limit: 300, 120, 20
-seed: 0, 1, ..., 49
+n = int(sys.argv[1])
+time_limit = int(sys.argv[2])
+seed = int(sys.argv[3])
+path = sys.argv[4]
+control = sys.argv[5] in ["control"] # Optional
+
+Sample size n: 500, 1000, 1500, 2000, 2500, 3000, 4000, 5000
+Runtime limit time_limit: 60, 300, 600
+seed: 0, 1, 2, 3, 4
+Folder to store results path: ./results
+Flag whether to run control experiment control: True, False
 """
 
 import warnings
@@ -31,8 +36,8 @@ if sys.argv[2] == 'None':
 else:
     time_limit = int(sys.argv[2])
 seed = int(sys.argv[3])
-if len(sys.argv) > 4:
-    control = sys.argv[4] in ["control"]
+if len(sys.argv) > 5:
+    control = sys.argv[5] in ["control"]
 else:
     control = False
 
@@ -51,7 +56,6 @@ print("seed %.f" % seed)
 
 
 def snr_score(estimator, x_test, y_test, permutations=None):
-    # pred = estimator.predict(x_test).reshape(-1, )
     pred = estimator.predict(x_test)
 
     pred = np.array(pred)
@@ -59,9 +63,7 @@ def snr_score(estimator, x_test, y_test, permutations=None):
 
     p_samp = pred[y_test > 0]
     q_samp = pred[y_test < 0]
-    # print(len(p_samp), len(q_samp))
     c = len(p_samp) / (len(p_samp) + len(q_samp))
-    # c = 1-c
     signal = (np.mean(p_samp) - np.mean(q_samp))
     if permutations is None:
         if c == 1 or c==0:
@@ -85,7 +87,6 @@ def snr_score(estimator, x_test, y_test, permutations=None):
 
             if signal <= float(signal_perm):
                 p += float(1 / permutations)
-        # print(signal, p)
         return p # this is the corresponding SNR
 
 
@@ -138,10 +139,6 @@ for i in pbar:
     predictor = TabularPredictor(label="label", problem_type="regression", eval_metric="mean_squared_error",
                                  verbosity=0).fit(train_data, presets='best_quality', time_limit=time_limit)
 
-    #
-    # snr = snr_score(grid_search.best_estimator_, X_test, Y_test)
-    # tau = np.sqrt(len(X_test)) * snr
-    # p = 1 - norm.cdf(tau)
     # with permutations we return directly the pvalue
     p = snr_score(predictor, test_data, Y_test, permutations=300)
     results_witness.append(1) if p < 0.05 else results_witness.append(0)
