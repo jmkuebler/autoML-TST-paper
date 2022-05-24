@@ -25,6 +25,10 @@ n = int(sys.argv[1])
 time_limit = int(sys.argv[2])
 seed = int(sys.argv[3])
 method = str(sys.argv[4])
+if len(sys.argv) > 5:
+    control = sys.argv[5] in ["control"]
+else:
+    control = False
 
 # Define results path and create directory.
 path = sys.argv[5]
@@ -146,14 +150,17 @@ results_discrete = []
 warnings.filterwarnings("ignore")
 pbar = tqdm(range(100))
 for i in pbar:
-    s1,s2 = sample_blobs_Q(n_per_class, sigma_mx_2, rs=rng)
-    # # print(s1[:5])
-    s1test, s2test = sample_blobs_Q(n_per_class, sigma_mx_2, rs=rng)
-
     # # this would be to investigate type-I error
-    #
-    # s1,s2 = sample_blobs(n_per_class, rs=rng)
-    # s1test, s2test = sample_blobs(n_per_class, rs=rng)
+    if control:
+        # test type-I error accoridng to Liu et al
+        s1,s2 = sample_blobs(n_per_class, rs=rng)
+        s1test, s2test = sample_blobs(n_per_class, rs=rng)
+    else:
+        s1,s2 = sample_blobs_Q(n_per_class, sigma_mx_2, rs=rng)
+        # # print(s1[:5])
+        s1test, s2test = sample_blobs_Q(n_per_class, sigma_mx_2, rs=rng)
+
+
 
     X_train = np.concatenate((s1, s2))
     X_test = np.concatenate((s1test, s2test))

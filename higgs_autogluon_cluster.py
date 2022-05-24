@@ -31,6 +31,10 @@ if sys.argv[2] == 'None':
 else:
     time_limit = int(sys.argv[2])
 seed = int(sys.argv[3])
+if len(sys.argv) > 4:
+    control = sys.argv[4] in ["control"]
+else:
+    control = False
 
 # Define results path and create directory.
 path = sys.argv[4]
@@ -90,6 +94,11 @@ def snr_score(estimator, x_test, y_test, permutations=None):
 data = pickle.load(open('./datasets/HIGGS_TST.pckl', 'rb'))
 dataX = data[0]
 dataY = data[1]
+if control:
+    # run type-I error control experiment as suggested by Liu et al
+    print("Experiment for Type-I error control")
+    dataX = data[0]
+    dataY = data[0]
 
 del data
 
