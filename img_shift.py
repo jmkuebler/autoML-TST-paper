@@ -1,3 +1,27 @@
+"""
+datset = sys.argv[1]
+shift_type = sys.argv[2]
+test_type = sys.argv[3]
+time_limit = int(sys.argv[4])
+path = sys.argv[5]
+pretrained = sys.argv[6] == 'True' # Optional
+method = sys.argv[7] # Optional
+discrete = sys.argv[8] == 'True' # Optional
+
+dataset: mnist, cifar10
+shift_type: orig, small_gn_shift, medium_gn_shift, large_gn_shift,
+    adversarial_shift, small_image_shift, medium_image_shift,
+    large_image_shift, medium_img_shift+ko_shift,
+    only_zero_shift+medium_img_shift
+test_type: univ
+Runtime limit time_limit: 60, 300, 600
+Folder to store results path: ./results
+Flag whether to use feature from pretrained model pretrained: True, False
+method: classification, regression
+Flag whether to use discrete features discrete: True, False
+"""
+
+
 # -------------------------------------------------
 # IMPORTS
 # -------------------------------------------------
@@ -31,13 +55,13 @@ from matplotlib import rc
 
 
 rc('font',**{'family':'serif','serif':['Times']})
-rc('text', usetex=True)
+#rc('text', usetex=True)
 rc('axes', labelsize=22)
 rc('xtick', labelsize=22)
 rc('ytick', labelsize=22)
 rc('legend', fontsize=13)
 
-mpl.rcParams['text.latex.preamble'] = [r'\usepackage{amsmath}']
+#mpl.rcParams['text.latex.preamble'] = [r'\usepackage{amsmath}']
 
 
 def clamp(val, minimum=0, maximum=255):
@@ -116,13 +140,24 @@ make_keras_picklable()
 datset = sys.argv[1]
 test_type = sys.argv[3]
 time_limit = int(sys.argv[4])
-if len(sys.argv) > 5:
-    pretrained = sys.argv[5]
+if len(sys.argv) > 6:
+    pretrained = sys.argv[6] == 'True'
 else:
     pretrained = False
+print('Using pretrained model: %s' % pretrained)
+if len(sys.argv) > 7:
+    method = sys.argv[7]
+    discrete = sys.argv[8] == 'True'
+    use_prob = not discrete
+else:
+    method = 'regression'
+    use_prob = False
+
+print('Fitting method to use: %s' % method)
+print('Use probability: %s' % str(use_prob))
 
 # Define results path and create directory.
-path = './paper_results/'
+path = sys.argv[5]
 path += test_type + '/'
 path += datset + '_'
 path += sys.argv[2] + '/'
@@ -330,151 +365,33 @@ for shift_idx, shift in enumerate(shifts):
 
                 # Characterize shift via domain classifier.
                 if pretrained: # work with the output of a pretrained network as is done for BBSDs
+                    print("Uses pretrained model")
                     # load pretrained model
                     shift_reductor = ShiftReductor(X_tr_3, y_tr_3, None, None, DimensionalityReduction(DimensionalityReduction.BBSDs.value), orig_dims, datset, dr_amount=32)
                     pretrained_model = shift_reductor.fit_reductor()
                     X_tr_red = shift_reductor.reduce(pretrained_model, X_val_3)
                     X_te_red = shift_reductor.reduce(pretrained_model, X_te_3)
                     shift_locator = ShiftLocator(orig_dims, dc=DifferenceClassifier.AUTOGLUON, sign_level=sign_level)
-                    model, score, (X_tr_dcl, y_tr_dcl, y_tr_old, X_te_dcl, y_te_dcl, y_te_old) = shift_locator.build_model(X_tr_red, y_val_3, X_te_red, y_te_3, time_limit=time_limit)
-                    test_indices, test_perc, dec, p_val = shift_locator.most_likely_shifted_samples(model, X_te_dcl, y_te_dcl)
+                    model, score, (X_tr_dcl, y_tr_dcl, y_tr_old, X_te_dcl, y_te_dcl, y_te_old) = shift_locator.build_model(X_tr_red, y_val_3, X_te_red, y_te_3, time_limit=time_limit, method=method)
+                    test_indices, test_perc, dec, p_val = shift_locator.most_likely_shifted_samples(model, X_te_dcl, y_te_dcl, use_prob=use_prob)
                 else:
                     shift_locator = ShiftLocator(orig_dims, dc=DifferenceClassifier.AUTOGLUON, sign_level=sign_level)
-                    model, score, (X_tr_dcl, y_tr_dcl, y_tr_old, X_te_dcl, y_te_dcl, y_te_old) = shift_locator.build_model(X_tr_3, y_tr_3, X_te_3, y_te_3, time_limit=time_limit)
-                    test_indices, test_perc, dec, p_val = shift_locator.most_likely_shifted_samples(model, X_te_dcl, y_te_dcl)
-
-                # K.clear_session()
+                    model, score, (X_tr_dcl, y_tr_dcl, y_tr_old, X_te_dcl, y_te_dcl, y_te_old) = shift_locator.build_model(X_tr_3, y_tr_3, X_te_3, y_te_3, time_limit=time_limit, method=method)
+                    test_indices, test_perc, dec, p_val = shift_locator.most_likely_shifted_samples(model, X_te_dcl, y_te_dcl, use_prob=use_prob)
 
                 rand_run_p_vals[si,:,rand_run] = np.append(ind_od_p_vals.flatten(), p_val)
-
-                interpret = False # set to true to store most typical examples
-                if interpret:
-                    if datset == 'mnist':
-                        samp_shape = (28,28)
-                        cmap = 'gray'
-                    elif datset == 'cifar10' or datset == 'cifar10_1' or datset == 'coil100' or datset == 'svhn':
-                        samp_shape = (32,32,3)
-                        cmap = None
-                    elif datset == 'mnist_usps':
-                        samp_shape = (16,16)
-                        cmap = 'gray'
-                    top_different_samples_path = sample_path + 'top_diff'
-                    size = 12
-                    top_Q = X_te_dcl[test_indices[:size]]
-                    top_P = X_te_dcl[test_indices[-size:]]
-                    if not os.path.exists(top_different_samples_path):
-                        os.makedirs(top_different_samples_path)
-
-                    top_Q = np.reshape(top_Q, (12, samp_shape[0], samp_shape[1]))
-                    fig, axes = plt.subplots(nrows=1, ncols=12)
-                    for j in range(12):
-                        axes[j].imshow(top_Q[j], cmap='gray')
-                        axes[j].axis('off')
-                    plt.subplots_adjust(wspace=0.1, hspace=0.1)
-                    plt.savefig("%s/overview_Q_flat.pdf" % (top_different_samples_path), bbox_inches='tight',
-                                pad_inches=0)
-                    plt.clf()
-                    top_P = np.reshape(top_P, (12, samp_shape[0], samp_shape[1]))
-                    fig, axes = plt.subplots(nrows=1, ncols=12)
-                    for j in range(12):
-                        axes[j].imshow(top_P[j], cmap='gray')
-                        axes[j].axis('off')
-                    plt.subplots_adjust(wspace=0.1, hspace=0.1)
-                    plt.savefig("%s/overview_P_flat.pdf" % (top_different_samples_path), bbox_inches='tight',
-                                pad_inches=0)
-                    plt.clf()
-                #
-                # if dec:
-                #     most_conf_test_indices = test_indices[test_perc > 0.8]
-                #
-                #     top_same_samples_path = sample_path + 'top_same'
-                #     if not os.path.exists(top_same_samples_path):
-                #         os.makedirs(top_same_samples_path)
-                #
-                #     rev_top_test_ind = test_indices[::-1][:difference_samples]
-                #     least_conf_samples = X_te_dcl[rev_top_test_ind]
-                #     for j in range(len(rev_top_test_ind)):
-                #         samp = least_conf_samples[j, :]
-                #         fig = plt.imshow(samp.reshape(samp_shape), cmap=cmap)
-                #         plt.axis('off')
-                #         fig.axes.get_xaxis().set_visible(False)
-                #         fig.axes.get_yaxis().set_visible(False)
-                #         plt.savefig("%s/%s.pdf" % (top_same_samples_path, j), bbox_inches='tight', pad_inches=0)
-                #         plt.clf()
-                #
-                #         j = j + 1
-                #
-                #     top_different_samples_path = sample_path + 'top_diff'
-                #     if not os.path.exists(top_different_samples_path):
-                #         os.makedirs(top_different_samples_path)
-                #
-                #     if calc_acc:
-                #         print('-------------------')
-                #         print("Len of most conf: %s" % len(most_conf_test_indices))
-                #         print(y_te_old[most_conf_test_indices])
-                #         if len(most_conf_test_indices) > 0:
-                #             y_te_dcl_pred = shift_detector.classify_data(X_tr_3, y_tr_3, X_val_3, y_val_3,
-                #                                                             X_te_dcl[most_conf_test_indices],
-                #                                                             y_te_dcl[most_conf_test_indices],
-                #                                                             orig_dims, nb_classes)
-                #             print(y_te_dcl_pred)
-                #             dcl_class_acc = np.sum(np.equal(y_te_dcl_pred, y_te_old[most_conf_test_indices])
-                #                                     .astype(int))/len(y_te_dcl_pred)
-                #             dcl_accs[si,rand_run] = dcl_class_acc
-                #             print("dcl_class_acc: ", dcl_class_acc)
-                #         print('-------------------')
-                #
-                #     most_conf_samples = X_te_dcl[most_conf_test_indices]
-                #     for j in range(len(most_conf_samples)):
-                #         if j < difference_samples:
-                #             samp = most_conf_samples[j,:]
-                #             fig = plt.imshow(samp.reshape(samp_shape), cmap=cmap)
-                #             plt.axis('off')
-                #             fig.axes.get_xaxis().set_visible(False)
-                #             fig.axes.get_yaxis().set_visible(False)
-                #             plt.savefig("%s/test_%s.pdf" % (top_different_samples_path, j), bbox_inches='tight',
-                #                         pad_inches=0)
-                #             plt.clf()
-                #
-                #             j = j + 1
-                #         else:
-                #             break
-
-
-                    # most_conf_samples = X_te_dcl[most_conf_test_indices]
-                    # original_indices = []
-                    # j = 0
-                    # for i in range(len(most_conf_samples)):
-                    #     samp = most_conf_samples[i,:]
-                    #     ind = np.where(np.all(X_te_3==samp,axis=1))
-                    #     if len(ind[0]) > 0:
-                    #         original_indices.append(np.asscalar(ind[0]))
-                    #
-                    #         if j < difference_samples:
-                    #             fig = plt.imshow(samp.reshape(samp_shape), cmap=cmap)
-                    #             plt.axis('off')
-                    #             fig.axes.get_xaxis().set_visible(False)
-                    #             fig.axes.get_yaxis().set_visible(False)
-                    #             plt.savefig("%s/%s.pdf" % (top_different_samples_path,j), bbox_inches='tight',
-                    #                         pad_inches = 0)
-                    #             plt.clf()
-                    #
-                    #             j = j + 1
 
         for dr_idx, dr in enumerate(dr_techniques_plot):
             plt.semilogx(np.array(samples), rand_run_p_vals[:,dr_idx,rand_run], format[dr], color=colors[dr], label="%s" % DimensionalityReduction(dr).name)
         plt.axhline(y=sign_level, color='k')
         plt.xlabel('Number of samples from test')
-        plt.ylabel('$p$-value')
+        plt.ylabel('p-value')
         plt.savefig("%s/dr_sample_comp_noleg.pdf" % rand_run_path, bbox_inches='tight')
         plt.legend()
         plt.savefig("%s/dr_sample_comp.pdf" % rand_run_path, bbox_inches='tight')
         plt.clf()
 
         np.savetxt("%s/dr_method_p_vals.csv" % rand_run_path, rand_run_p_vals[:,:,rand_run], delimiter=",")
-
-        # np.random.seed(seed)
-        # set_random_seed(seed)
 
     mean_p_vals = np.mean(rand_run_p_vals, axis=2)
     std_p_vals = np.std(rand_run_p_vals, axis=2)
@@ -539,8 +456,8 @@ for shift_idx, shift in enumerate(shifts):
         np.savetxt("%s/accs.csv" % shift_path, accs, delimiter=",")
         np.savetxt("%s/dcl_accs.csv" % shift_path, dcl_accs, delimiter=",")
 
-        errorfill(np.array(samples), mean_val_accs, std_val_accs, fmt='-o', color=colors[0], label=r"$p$")
-        errorfill(np.array(samples), mean_te_accs, std_te_accs, fmt='-s', color=colors[3], label=r"$q$")
+        errorfill(np.array(samples), mean_val_accs, std_val_accs, fmt='-o', color=colors[0], label=r"p")
+        errorfill(np.array(samples), mean_te_accs, std_te_accs, fmt='-s', color=colors[3], label=r"q")
         if len(smpl_array) > 0:
             errorfill(smpl_array, mean_dcl_accs, std_dcl_accs, fmt='--X', color=colors[7], label=r"Classif")
         plt.xlabel('Number of samples from test')
@@ -555,7 +472,7 @@ for shift_idx, shift in enumerate(shifts):
         errorfill(np.array(samples), mean_p_vals[:,dr_idx], std_p_vals[:,dr_idx], fmt=format[dr], color=colors[dr], label="%s" % DimensionalityReduction(dr).name)
     plt.axhline(y=sign_level, color='k')
     plt.xlabel('Number of samples from test')
-    plt.ylabel('$p$-value')
+    plt.ylabel('p-value')
     plt.savefig("%s/dr_sample_comp_noleg.pdf" % shift_path, bbox_inches='tight')
     plt.legend()
     plt.savefig("%s/dr_sample_comp.pdf" % shift_path, bbox_inches='tight')
@@ -564,7 +481,7 @@ for shift_idx, shift in enumerate(shifts):
     for dr_idx, dr in enumerate(dr_techniques_plot):
         errorfill(np.array(samples), mean_p_vals[:,dr_idx], std_p_vals[:,dr_idx], fmt=format[dr], color=colors[dr])
         plt.xlabel('Number of samples from test')
-        plt.ylabel('$p$-value')
+        plt.ylabel('p-value')
         plt.axhline(y=sign_level, color='k', label='sign_level')
         plt.savefig("%s/%s_conf.pdf" % (shift_path, DimensionalityReduction(dr).name), bbox_inches='tight')
         plt.clf()
@@ -586,7 +503,7 @@ for dr_idx, dr in enumerate(dr_techniques_plot):
     for idx, shift in enumerate(shifts):
         errorfill(np.array(samples), mean_p_vals[:, idx], std_p_vals[:, idx], fmt=linestyles[idx]+markers[dr], color=colorscale(colors[dr],brightness[idx]), label="%s" % shift.replace('_', '\\_'))
     plt.xlabel('Number of samples from test')
-    plt.ylabel('$p$-value')
+    plt.ylabel('p-value')
     plt.axhline(y=sign_level, color='k')
     plt.savefig("%s/%s_conf_noleg.pdf" % (path, DimensionalityReduction(dr).name), bbox_inches='tight')
     plt.legend()

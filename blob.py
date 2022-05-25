@@ -3,12 +3,15 @@ n = int(sys.argv[1])
 time_limit = int(sys.argv[2])
 seed = int(sys.argv[3])
 method = str(sys.argv[4])
+path = sys.argv[5]
+control = sys.argv[6] == 'True' # Optional
 
-run for
-n: 10, 20, 30, 40, 50
-time_limit: 60, 300, 600
-seed: 0, 1, ..., 49
-method: 'classification', 'regression'
+Sample size n: 10, 20, 30, 40, 50
+Runtime limit time_limit: 60, 300, 600
+seed: 0, 1, 2, 3, 4
+method: classification, regression
+Folder to store results path: ./results
+Flag whether to run control experiment control: True, False
 """
 
 import warnings
@@ -25,13 +28,13 @@ n = int(sys.argv[1])
 time_limit = int(sys.argv[2])
 seed = int(sys.argv[3])
 method = str(sys.argv[4])
-if len(sys.argv) > 5:
-    control = sys.argv[5] in ["control"]
+if len(sys.argv) > 6:
+    control = sys.argv[6] == 'True'
 else:
     control = False
 
 # Define results path and create directory.
-path = './results_blobs_autogluon/'
+path = sys.argv[5]
 path += method + '/'
 path += str(n) + '/'
 path += str(time_limit) + '/'
@@ -45,7 +48,9 @@ def snr_score(estimator, x_test, y_test, permutations=None, discrete=False):
     if discrete:
         pred = estimator.predict(x_test)
     else:
-        pred = np.array(estimator.predict_proba(x_test))[:,1]
+        pred = np.array(estimator.predict_proba(x_test))
+        if pred.ndim == 2:
+            pred = pred[:, 1]
 
     pred = np.array(pred)
     y_test = np.array(y_test).reshape(-1, )
@@ -146,7 +151,7 @@ n_per_class = 9*n
 results_witness = []
 results_discrete = []
 warnings.filterwarnings("ignore")
-pbar = tqdm(range(10))
+pbar = tqdm(range(100))
 for i in pbar:
     # # this would be to investigate type-I error
     if control:
@@ -194,7 +199,7 @@ for i in pbar:
         results_discrete.append(1) if p < 0.05 else results_discrete.append(0)
     # delete models
     model_path = predictor.path
-    shutil.rmtree(model_path[:-1])
+    shutil.rmtree(model_path)
     pbar.set_description("n= %.0f" % n_per_class + " witness power: %.4f" % np.mean(results_witness) + " current p-value %.4f" %p)
 
 with open(f'{path}results.npy', 'wb') as f:

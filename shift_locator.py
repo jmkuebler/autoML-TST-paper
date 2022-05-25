@@ -16,6 +16,8 @@ import keras
 import keras_resnet
 from keras import optimizers
 
+import shutil
+
 
 class DifferenceClassifier(Enum):
     FFNNDCL = 1
@@ -85,24 +87,33 @@ class ShiftLocator:
         self.sign_level = sign_level
         self.ratio = -1.0
 
-    def build_model(self, X_tr, y_tr, X_te, y_te, balanced=True, time_limit=None):
+    def build_model(self, X_tr, y_tr, X_te, y_te, balanced=True, time_limit=None, method='regression'):
         if self.dc == DifferenceClassifier.FFNNDCL:
             return self.neural_network_difference_detector(X_tr, y_tr, X_te, y_te, bal=balanced)
         elif self.dc == DifferenceClassifier.FLDA:
             return self.fisher_lda_difference_detector(X_tr, X_te, balanced=balanced)
         elif self.dc == DifferenceClassifier.AUTOGLUON:
-            return self.autogluon_witness(X_tr, y_tr, X_te, y_te, bal=balanced, time_limit=time_limit)
+            return self.autogluon_witness(X_tr, y_tr, X_te, y_te, bal=balanced, time_limit=time_limit, method=method)
         elif self.ac == AnomalyDetection.OCSVM:
             return self.one_class_svm(X_tr, X_te, balanced=balanced)
 
 
-    def most_likely_shifted_samples(self, model, X_te_new, y_te_new):
+    def most_likely_shifted_samples(self, model, X_te_new, y_te_new,
+                                    use_prob=True):
         if self.dc == DifferenceClassifier.AUTOGLUON:
             df_test = pd.DataFrame(X_te_new)
             df_test['label'] = y_te_new
             test_data = TabularDataset(df_test)
             # Predict witness values.
-            y_te_new_pred = model.predict(test_data)
+            if use_prob:
+                y_te_new_pred = model.predict_proba(test_data)
+                y_te_new_pred = np.array(y_te_new_pred)[:, 1]
+            else:
+                y_te_new_pred = model.predict(test_data)
+            model_path = model.path
+            del model
+            shutil.rmtree(model_path)
+
 
             # # Get most anomalous indices sorted in descending order.
             # for the witness approach, the shifted samples are labelled with 0, hence we need the smallest values
@@ -166,7 +177,7 @@ class ShiftLocator:
             novelties = X_te_new[y_pred_te == -1]
             return novelties, None, -1
 
-    def autogluon_witness(self, X_tr, y_tr, X_te, y_te, time_limit=20, bal=False):
+    def autogluon_witness(self, X_tr, y_tr, X_te, y_te, time_limit=20, bal=False, method='regression'):
         D = X_tr.shape[1]
         X_tr_dcl, y_tr_dcl, y_tr_old, X_te_dcl, y_te_dcl, y_te_old = self.__prepare_difference_detector(X_tr, y_tr,
                                                                                                         X_te, y_te,
@@ -178,7 +189,8 @@ class ShiftLocator:
 
         train_data = TabularDataset(df_train)
         test_data = TabularDataset(df_test)
-        model = TabularPredictor(label="label", problem_type="regression", eval_metric="mean_squared_error",
+        eval_metric = "accuracy" if method == "binary" else "mean_squared_error"
+        model = TabularPredictor(label="label", problem_type=method, eval_metric=eval_metric,
                                      verbosity=0).fit(train_data, presets='best_quality', time_limit=time_limit)
 
         return model, None, (X_tr_dcl, y_tr_dcl, y_tr_old, X_te_dcl, y_te_dcl, y_te_old)

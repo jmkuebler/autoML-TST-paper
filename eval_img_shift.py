@@ -77,7 +77,7 @@ colors = ['#2196f3', '#f44336', '#9c27b0', '#64dd17', '#009688', '#ff9800', '#79
 
 # Define results path.
 test_type = sys.argv[1]
-path = './paper_results/'
+path = sys.argv[2]
 path += test_type + '/'
 
 # Define DR methods.
@@ -86,10 +86,7 @@ if test_type == 'multiv':
                      DimensionalityReduction.SRP.value, DimensionalityReduction.UAE.value,
                      DimensionalityReduction.TAE.value, DimensionalityReduction.BBSDs.value]
 else:
-    dr_techniques = [DimensionalityReduction.NoRed.value, DimensionalityReduction.PCA.value,
-                     DimensionalityReduction.SRP.value, DimensionalityReduction.UAE.value,
-                     DimensionalityReduction.TAE.value, DimensionalityReduction.BBSDs.value,
-                     DimensionalityReduction.BBSDh.value, DimensionalityReduction.Classif.value]
+    dr_techniques = [DimensionalityReduction.Classif.value]
 
 # Define number of random runs to average results over. 
 rand_runs = 5
@@ -243,7 +240,10 @@ for dataset in datasets:
         if test_type == 'multiv':
             shift_decision_array_sh = shift_decision_array_sh[:,:,3]
         else:
-            shift_decision_array_sh = shift_decision_array_sh[:,:,5]
+            if shift_decision_array_sh.shape[2] > 1:
+                shift_decision_array_sh = shift_decision_array_sh[:,:,5]
+            else:
+                shift_decision_array_sh = shift_decision_array_sh[:, :, 0]
 
         # Shift percentage
         if shift_decision_array_sh.shape[0] == 7 and test_type == 'univ':
