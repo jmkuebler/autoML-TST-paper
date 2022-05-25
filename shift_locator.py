@@ -105,7 +105,8 @@ class ShiftLocator:
             y_te_new_pred = model.predict(test_data)
 
             # # Get most anomalous indices sorted in descending order.
-            # most_conf_test_indices = np.argsort(y_te_new_pred[:,1])[::-1]
+            # for the witness approach, the shifted samples are labelled with 0, hence we need the smallest values
+            most_conf_test_indices = np.argsort(y_te_new_pred)
             # most_conf_test_perc = np.sort(y_te_new_pred[:,1])[::-1]
 
             # Test whether witness significance.
@@ -127,7 +128,7 @@ class ShiftLocator:
                     p_val += np.float(1 / permutations)
 
             # return most_conf_test_indices, most_conf_test_perc, p_val < self.sign_level, p_val
-            return None, None, p_val < self.sign_level, p_val
+            return most_conf_test_indices, None, p_val < self.sign_level, p_val
 
         if self.dc == DifferenceClassifier.FFNNDCL:
 
