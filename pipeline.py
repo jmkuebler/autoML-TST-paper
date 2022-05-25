@@ -347,15 +347,42 @@ for shift_idx, shift in enumerate(shifts):
 
                 rand_run_p_vals[si,:,rand_run] = np.append(ind_od_p_vals.flatten(), p_val)
 
-                # if datset == 'mnist':
-                #     samp_shape = (28,28)
-                #     cmap = 'gray'
-                # elif datset == 'cifar10' or datset == 'cifar10_1' or datset == 'coil100' or datset == 'svhn':
-                #     samp_shape = (32,32,3)
-                #     cmap = None
-                # elif datset == 'mnist_usps':
-                #     samp_shape = (16,16)
-                #     cmap = 'gray'
+                interpret = False # set to true to store most typical examples
+                if interpret:
+                    if datset == 'mnist':
+                        samp_shape = (28,28)
+                        cmap = 'gray'
+                    elif datset == 'cifar10' or datset == 'cifar10_1' or datset == 'coil100' or datset == 'svhn':
+                        samp_shape = (32,32,3)
+                        cmap = None
+                    elif datset == 'mnist_usps':
+                        samp_shape = (16,16)
+                        cmap = 'gray'
+                    top_different_samples_path = sample_path + 'top_diff'
+                    size = 12
+                    top_Q = X_te_dcl[test_indices[:size]]
+                    top_P = X_te_dcl[test_indices[-size:]]
+                    if not os.path.exists(top_different_samples_path):
+                        os.makedirs(top_different_samples_path)
+
+                    top_Q = np.reshape(top_Q, (12, samp_shape[0], samp_shape[1]))
+                    fig, axes = plt.subplots(nrows=1, ncols=12)
+                    for j in range(12):
+                        axes[j].imshow(top_Q[j], cmap='gray')
+                        axes[j].axis('off')
+                    plt.subplots_adjust(wspace=0.1, hspace=0.1)
+                    plt.savefig("%s/overview_Q_flat.pdf" % (top_different_samples_path), bbox_inches='tight',
+                                pad_inches=0)
+                    plt.clf()
+                    top_P = np.reshape(top_P, (12, samp_shape[0], samp_shape[1]))
+                    fig, axes = plt.subplots(nrows=1, ncols=12)
+                    for j in range(12):
+                        axes[j].imshow(top_P[j], cmap='gray')
+                        axes[j].axis('off')
+                    plt.subplots_adjust(wspace=0.1, hspace=0.1)
+                    plt.savefig("%s/overview_P_flat.pdf" % (top_different_samples_path), bbox_inches='tight',
+                                pad_inches=0)
+                    plt.clf()
                 #
                 # if dec:
                 #     most_conf_test_indices = test_indices[test_perc > 0.8]
