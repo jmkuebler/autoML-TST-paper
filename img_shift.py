@@ -1,12 +1,13 @@
 """
-datset = sys.argv[1]
-shift_type = sys.argv[2]
-test_type = sys.argv[3]
-time_limit = int(sys.argv[4])
-path = sys.argv[5]
-pretrained = sys.argv[6] == 'True' # Optional
-method = sys.argv[7] # Optional
-discrete = sys.argv[8] == 'True' # Optional
+parser.add_argument('--datset', type=str, required=True)
+parser.add_argument('--shift_type', type=str, required=True) # need to change this everywhere
+parser.add_argument('--test_type', type=str, default='univ')
+parser.add_argument('--time_limit', type=int, default=300, required=False)
+parser.add_argument('--path', type= str, default='./results')
+parser.add_argument('--pretrained', action='store_true')
+parser.add_argument('--method', type=str, default='regression')
+parser.add_argument('--discrete', action='store_true')
+parser.add_argument('--mmd', action='store_true')
 
 dataset: mnist, cifar10
 shift_type: orig, small_gn_shift, medium_gn_shift, large_gn_shift,
@@ -19,6 +20,7 @@ Folder to store results path: ./results
 Flag whether to use feature from pretrained model pretrained: True, False
 method: binary, regression
 Flag whether to use discrete features discrete: True, False
+Flag whether to use deep-mmd instead of witness: True, False
 """
 
 
