@@ -406,7 +406,6 @@ for shift_idx, shift in enumerate(shifts):
                     # make sample for MMD test.
                     sample_p = X_tr_3[:len(X_te_3)]
                     sample_q = X_te_3
-                    print(len(sample_q), len(sample_q))
                     dec, p_val = deep_mmd(sample_p, sample_q, sign_level=sign_level, datset=datset)
 
 
