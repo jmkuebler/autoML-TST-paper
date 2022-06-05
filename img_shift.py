@@ -17,7 +17,7 @@ test_type: univ
 Runtime limit time_limit: 60, 300, 600
 Folder to store results path: ./results
 Flag whether to use feature from pretrained model pretrained: True, False
-method: classification, regression
+method: binary, regression
 Flag whether to use discrete features discrete: True, False
 """
 
@@ -42,8 +42,11 @@ from shift_locator import *
 from shift_applicator import *
 from data_utils import *
 from shared_utils import *
+from deep_mmd import deep_mmd
 import os
 import sys
+import argparse
+
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -137,30 +140,49 @@ colors = ['#2196f3', '#f44336', '#9c27b0', '#64dd17', '#009688', '#ff9800', '#79
 
 make_keras_picklable()
 
-datset = sys.argv[1]
-test_type = sys.argv[3]
-time_limit = int(sys.argv[4])
-if len(sys.argv) > 6:
-    pretrained = sys.argv[6] == 'True'
-else:
-    pretrained = False
+parser = argparse.ArgumentParser()
+parser.add_argument('--datset', type=str, required=True)
+parser.add_argument('--shift_type', type=str, required=True) # need to change this everywhere
+parser.add_argument('--test_type', type=str, default='univ')
+parser.add_argument('--time_limit', type=int, default=300, required=False)
+parser.add_argument('--path', type= str, default='./results')
+parser.add_argument('--pretrained', action='store_true')
+parser.add_argument('--method', type=str, default='regression')
+parser.add_argument('--discrete', action='store_true')
+parser.add_argument('--mmd', action='store_true')
+
+
+args = parser.parse_args()
+
+datset = args.datset
+shift_type = args.shift_type
+test_type = args.test_type
+time_limit = int(args.time_limit)
+pretrained = args.pretrained
 print('Using pretrained model: %s' % pretrained)
-if len(sys.argv) > 7:
-    method = sys.argv[7]
-    discrete = sys.argv[8] == 'True'
+method = args.method
+if method == 'binary':
+    discrete = args.discrete
     use_prob = not discrete
 else:
-    method = 'regression'
     use_prob = False
+# if len(sys.argv) > 7:
+#     method = sys.argv[7]
+#     discrete = sys.argv[8] == 'True'
+#     use_prob = not discrete
+# else:
+#     method = 'regression'
+#     use_prob = False
+mmd = args.mmd
 
 print('Fitting method to use: %s' % method)
 print('Use probability: %s' % str(use_prob))
 
 # Define results path and create directory.
-path = sys.argv[5]
+path = args.path
 path += test_type + '/'
 path += datset + '_'
-path += sys.argv[2] + '/'
+path += shift_type + '/'
 if not os.path.exists(path):
     os.makedirs(path)
 
@@ -200,50 +222,50 @@ sign_level = 0.05
 calc_acc = False
 
 # Define shift types.
-if sys.argv[2] == 'small_gn_shift':
+if shift_type == 'small_gn_shift':
     shifts = ['small_gn_shift_0.1',
               'small_gn_shift_0.5',
               'small_gn_shift_1.0']
-elif sys.argv[2] == 'medium_gn_shift':
+elif shift_type == 'medium_gn_shift':
     shifts = ['medium_gn_shift_0.1',
               'medium_gn_shift_0.5',
               'medium_gn_shift_1.0']
-elif sys.argv[2] == 'large_gn_shift':
+elif shift_type == 'large_gn_shift':
     shifts = ['large_gn_shift_0.1',
               'large_gn_shift_0.5',
               'large_gn_shift_1.0']
-elif sys.argv[2] == 'adversarial_shift':
+elif shift_type == 'adversarial_shift':
     shifts = ['adversarial_shift_0.1',
               'adversarial_shift_0.5',
               'adversarial_shift_1.0']
-elif sys.argv[2] == 'ko_shift':
+elif shift_type == 'ko_shift':
     shifts = ['ko_shift_0.1',
               'ko_shift_0.5',
               'ko_shift_1.0']
     if test_type == 'univ':
         samples = [10, 20, 50, 100, 200, 500, 1000, 9000]
-elif sys.argv[2] == 'orig':
+elif shift_type == 'orig':
     shifts = ['rand', 'orig']
     brightness = [1.25, 0.75]
-elif sys.argv[2] == 'small_image_shift':
+elif shift_type == 'small_image_shift':
     shifts = ['small_img_shift_0.1',
               'small_img_shift_0.5',
               'small_img_shift_1.0']
-elif sys.argv[2] == 'medium_image_shift':
+elif shift_type == 'medium_image_shift':
     shifts = ['medium_img_shift_0.1',
               'medium_img_shift_0.5',
               'medium_img_shift_1.0']
-elif sys.argv[2] == 'large_image_shift':
+elif shift_type == 'large_image_shift':
     shifts = ['large_img_shift_0.1',
               'large_img_shift_0.5',
               'large_img_shift_1.0']
-elif sys.argv[2] == 'medium_img_shift+ko_shift':
+elif shift_type == 'medium_img_shift+ko_shift':
     shifts = ['medium_img_shift_0.5+ko_shift_0.1',
               'medium_img_shift_0.5+ko_shift_0.5',
               'medium_img_shift_0.5+ko_shift_1.0']
     if test_type == 'univ':
         samples = [10, 20, 50, 100, 200, 500, 1000, 9000]
-elif sys.argv[2] == 'only_zero_shift+medium_img_shift':
+elif shift_type == 'only_zero_shift+medium_img_shift':
     shifts = ['only_zero_shift+medium_img_shift_0.1',
               'only_zero_shift+medium_img_shift_0.5',
               'only_zero_shift+medium_img_shift_1.0']
@@ -362,22 +384,31 @@ for shift_idx, shift in enumerate(shifts):
                 if DimensionalityReduction.Classif.value not in dr_techniques_plot:
                     rand_run_p_vals[si,:,rand_run] = ind_od_p_vals.flatten()
                     continue
-
-                # Characterize shift via domain classifier.
-                if pretrained: # work with the output of a pretrained network as is done for BBSDs
-                    print("Uses pretrained model")
-                    # load pretrained model
-                    shift_reductor = ShiftReductor(X_tr_3, y_tr_3, None, None, DimensionalityReduction(DimensionalityReduction.BBSDs.value), orig_dims, datset, dr_amount=32)
-                    pretrained_model = shift_reductor.fit_reductor()
-                    X_tr_red = shift_reductor.reduce(pretrained_model, X_val_3)
-                    X_te_red = shift_reductor.reduce(pretrained_model, X_te_3)
-                    shift_locator = ShiftLocator(orig_dims, dc=DifferenceClassifier.AUTOGLUON, sign_level=sign_level)
-                    model, score, (X_tr_dcl, y_tr_dcl, y_tr_old, X_te_dcl, y_te_dcl, y_te_old) = shift_locator.build_model(X_tr_red, y_val_3, X_te_red, y_te_3, time_limit=time_limit, method=method)
-                    test_indices, test_perc, dec, p_val = shift_locator.most_likely_shifted_samples(model, X_te_dcl, y_te_dcl, use_prob=use_prob)
+                if not mmd:
+                    # Characterize shift via domain classifier.
+                    if pretrained: # work with the output of a pretrained network as is done for BBSDs
+                        print("Uses pretrained model")
+                        # load pretrained model
+                        shift_reductor = ShiftReductor(X_tr_3, y_tr_3, None, None, DimensionalityReduction(DimensionalityReduction.BBSDs.value), orig_dims, datset, dr_amount=32)
+                        pretrained_model = shift_reductor.fit_reductor()
+                        X_tr_red = shift_reductor.reduce(pretrained_model, X_val_3)
+                        X_te_red = shift_reductor.reduce(pretrained_model, X_te_3)
+                        shift_locator = ShiftLocator(orig_dims, dc=DifferenceClassifier.AUTOGLUON, sign_level=sign_level)
+                        model, score, (X_tr_dcl, y_tr_dcl, y_tr_old, X_te_dcl, y_te_dcl, y_te_old) = shift_locator.build_model(X_tr_red, y_val_3, X_te_red, y_te_3, time_limit=time_limit, method=method)
+                        test_indices, test_perc, dec, p_val = shift_locator.most_likely_shifted_samples(model, X_te_dcl, y_te_dcl, use_prob=use_prob)
+                    else:
+                        shift_locator = ShiftLocator(orig_dims, dc=DifferenceClassifier.AUTOGLUON, sign_level=sign_level)
+                        print(len(X_te_3))
+                        model, score, (X_tr_dcl, y_tr_dcl, y_tr_old, X_te_dcl, y_te_dcl, y_te_old) = shift_locator.build_model(X_tr_3, y_tr_3, X_te_3, y_te_3, time_limit=time_limit, method=method)
+                        test_indices, test_perc, dec, p_val = shift_locator.most_likely_shifted_samples(model, X_te_dcl, y_te_dcl, use_prob=use_prob)
                 else:
-                    shift_locator = ShiftLocator(orig_dims, dc=DifferenceClassifier.AUTOGLUON, sign_level=sign_level)
-                    model, score, (X_tr_dcl, y_tr_dcl, y_tr_old, X_te_dcl, y_te_dcl, y_te_old) = shift_locator.build_model(X_tr_3, y_tr_3, X_te_3, y_te_3, time_limit=time_limit, method=method)
-                    test_indices, test_perc, dec, p_val = shift_locator.most_likely_shifted_samples(model, X_te_dcl, y_te_dcl, use_prob=use_prob)
+                    # run deep MMD test by Liu et al
+                    # make sample for MMD test.
+                    sample_p = X_tr_3[:len(X_te_3)]
+                    sample_q = X_te_3
+                    print(len(sample_q), len(sample_q))
+                    dec, p_val = deep_mmd(sample_p, sample_q, sign_level=sign_level, datset=datset)
+
 
                 rand_run_p_vals[si,:,rand_run] = np.append(ind_od_p_vals.flatten(), p_val)
 
