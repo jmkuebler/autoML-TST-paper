@@ -90,8 +90,8 @@ def h1_mean_var_gram(Kx, Ky, Kxy, is_var_computed, use_1sample_U=True):
     V1 = torch.dot(hh.sum(1)/ny,hh.sum(1)/ny) / ny
     V2 = (hh).sum() / (nx) / nx
     varEst = 4*(V1 - V2**2)
-    if  varEst == 0.0:
-        print('error_var!!'+str(V1))
+    # if  varEst == 0.0:
+    #     print('error_var!!'+str(V1))
     return mmd2, varEst, Kxyxy
 
 def MMDu(Fea, len_s, Fea_org, sigma, sigma0=0.1, epsilon = 10**(-10), is_smooth=True, is_var_computed=True, use_1sample_U=True):
