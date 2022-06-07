@@ -1,5 +1,5 @@
 """
-parser.add_argument('--datset', type=str, required=True)
+parser.add_argument('--dataset', type=str, required=True)
 parser.add_argument('--shift_type', type=str, required=True) # need to change this everywhere
 parser.add_argument('--test_type', type=str, default='univ')
 parser.add_argument('--time_limit', type=int, default=300, required=False)
@@ -143,7 +143,7 @@ colors = ['#2196f3', '#f44336', '#9c27b0', '#64dd17', '#009688', '#ff9800', '#79
 make_keras_picklable()
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--datset', type=str, required=True)
+parser.add_argument('--dataset', type=str, required=True)
 parser.add_argument('--shift_type', type=str, required=True) # need to change this everywhere
 parser.add_argument('--test_type', type=str, default='univ')
 parser.add_argument('--time_limit', type=int, default=300, required=False)
@@ -156,7 +156,7 @@ parser.add_argument('--mmd', action='store_true')
 
 args = parser.parse_args()
 
-datset = args.datset
+dataset = args.dataset
 shift_type = args.shift_type
 test_type = args.test_type
 time_limit = int(args.time_limit)
@@ -183,7 +183,7 @@ print('Use probability: %s' % str(use_prob))
 # Define results path and create directory.
 path = args.path
 path += test_type + '/'
-path += datset + '_'
+path += dataset + '_'
 path += shift_type + '/'
 if not os.path.exists(path):
     os.makedirs(path)
@@ -275,10 +275,10 @@ elif shift_type == 'only_zero_shift+medium_img_shift':
 else:
     shifts = []
     
-if datset == 'coil100' and test_type == 'univ':
+if dataset == 'coil100' and test_type == 'univ':
     samples = [10, 20, 50, 100, 200, 500, 1000, 2400]
 
-if datset == 'mnist_usps':
+if dataset == 'mnist_usps':
     samples = [10, 20, 50, 100, 200, 500, 1000]
 
 # -------------------------------------------------
@@ -321,7 +321,7 @@ for shift_idx, shift in enumerate(shifts):
 
         # Load data.
         (X_tr_orig, y_tr_orig), (X_val_orig, y_val_orig), (X_te_orig, y_te_orig), orig_dims, nb_classes = \
-            import_dataset(datset, shuffle=True)
+            import_dataset(dataset, shuffle=True)
         X_tr_orig = normalize_datapoints(X_tr_orig, 255.)
         X_te_orig = normalize_datapoints(X_te_orig, 255.)
         X_val_orig = normalize_datapoints(X_val_orig, 255.)
@@ -329,14 +329,14 @@ for shift_idx, shift in enumerate(shifts):
         # Apply shift.
         if shift == 'orig':
             print('Original')
-            (X_tr_orig, y_tr_orig), (X_val_orig, y_val_orig), (X_te_orig, y_te_orig), orig_dims, nb_classes = import_dataset(datset)
+            (X_tr_orig, y_tr_orig), (X_val_orig, y_val_orig), (X_te_orig, y_te_orig), orig_dims, nb_classes = import_dataset(dataset)
             X_tr_orig = normalize_datapoints(X_tr_orig, 255.)
             X_te_orig = normalize_datapoints(X_te_orig, 255.)
             X_val_orig = normalize_datapoints(X_val_orig, 255.)
             X_te_1 = X_te_orig.copy()
             y_te_1 = y_te_orig.copy()
         else:
-            (X_te_1, y_te_1) = apply_shift(X_te_orig, y_te_orig, shift, orig_dims, datset)
+            (X_te_1, y_te_1) = apply_shift(X_te_orig, y_te_orig, shift, orig_dims, dataset)
 
         X_te_2 , y_te_2 = random_shuffle(X_te_1, y_te_1)
 
@@ -364,7 +364,7 @@ for shift_idx, shift in enumerate(shifts):
 
             # Detect shift.
             shift_detector = ShiftDetector(dr_techniques, test_types, od_tests, md_tests, sign_level, red_models,
-                                           sample, datset)
+                                           sample, dataset)
             (od_decs, ind_od_decs, ind_od_p_vals), \
             (md_decs, ind_md_decs, ind_md_p_vals), \
             red_dim, red_models, val_acc, te_acc = shift_detector.detect_data_shift(X_tr_3, y_tr_3, X_val_3, y_val_3,
@@ -391,7 +391,7 @@ for shift_idx, shift in enumerate(shifts):
                     if pretrained: # work with the output of a pretrained network as is done for BBSDs
                         print("Uses pretrained model")
                         # load pretrained model
-                        shift_reductor = ShiftReductor(X_tr_3, y_tr_3, None, None, DimensionalityReduction(DimensionalityReduction.BBSDs.value), orig_dims, datset, dr_amount=32)
+                        shift_reductor = ShiftReductor(X_tr_3, y_tr_3, None, None, DimensionalityReduction(DimensionalityReduction.BBSDs.value), orig_dims, dataset, dr_amount=32)
                         pretrained_model = shift_reductor.fit_reductor()
                         X_tr_red = shift_reductor.reduce(pretrained_model, X_val_3)
                         X_te_red = shift_reductor.reduce(pretrained_model, X_te_3)
@@ -408,7 +408,7 @@ for shift_idx, shift in enumerate(shifts):
                     # make sample for MMD test.
                     sample_p = X_tr_3[:len(X_te_3)]
                     sample_q = X_te_3
-                    dec, p_val = deep_mmd(sample_p, sample_q, sign_level=sign_level, datset=datset)
+                    dec, p_val = deep_mmd(sample_p, sample_q, sign_level=sign_level, datset=dataset)
 
 
                 rand_run_p_vals[si,:,rand_run] = np.append(ind_od_p_vals.flatten(), p_val)
