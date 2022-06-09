@@ -170,7 +170,7 @@ def deep_mmd(sample_p, sample_q, sign_level, datset):
                 # Initialize optimizer
                 optimizer_F.zero_grad()
                 # Compute output of deep network
-                modelu_output = featurizer(X.to(device))
+                modelu_output = featurizer(X)
                 # Compute epsilon, sigma and sigma_0
                 ep = torch.exp(epsilonOPT) / (1 + torch.exp(epsilonOPT))
                 sigma = sigmaOPT ** 2
@@ -192,5 +192,5 @@ def deep_mmd(sample_p, sample_q, sign_level, datset):
     alpha = 0.05
     Sv = S.view(2 * N1, -1)
     # MMD-D
-    dec, pvalue = TST_MMD_u(featurizer(S), N_per, N1, Sv, sigma, sigma0_u, ep, alpha, device, dtype)
+    dec, pvalue = TST_MMD_u(featurizer(S.to(device)), N_per, N1, Sv, sigma, sigma0_u, ep, alpha, device, dtype)
     return dec, pvalue
