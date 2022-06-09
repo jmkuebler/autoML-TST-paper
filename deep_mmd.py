@@ -186,11 +186,11 @@ def deep_mmd(sample_p, sample_q, sign_level, datset):
                 optimizer_F.step()
 
     # Test on Test sets
-    S = torch.cat([x_test.cpu(), y_test.cpu()], 0)
+    S = torch.cat([x_test.cpu(), y_test.cpu()], 0).to(device)
     N1 = len(x_test)
     N_per = 500
     alpha = 0.05
     Sv = S.view(2 * N1, -1)
     # MMD-D
-    dec, pvalue = TST_MMD_u(featurizer(S.to(device)), N_per, N1, Sv, sigma, sigma0_u, ep, alpha, device, dtype)
+    dec, pvalue = TST_MMD_u(featurizer(S), N_per, N1, Sv, sigma, sigma0_u, ep, alpha, device, dtype)
     return dec, pvalue
