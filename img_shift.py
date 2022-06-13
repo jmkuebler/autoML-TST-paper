@@ -8,6 +8,7 @@ parser.add_argument('--pretrained', action='store_true')
 parser.add_argument('--method', type=str, default='regression')
 parser.add_argument('--discrete', action='store_true')
 parser.add_argument('--mmd', action='store_true')
+parser.add_argument('--mmdagg', action='store_true')
 
 dataset: mnist, cifar10
 shift_type: orig, small_gn_shift, medium_gn_shift, large_gn_shift,
@@ -21,6 +22,7 @@ Flag whether to use feature from pretrained model pretrained: True, False
 method: binary, regression
 Flag whether to use discrete features discrete: True, False
 Flag whether to use deep-mmd instead of witness: True, False
+Flag whether to use mmdagg instead of witness: True, False
 """
 
 
