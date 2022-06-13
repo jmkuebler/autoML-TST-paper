@@ -28,3 +28,10 @@ The Higgs dataset is provided by the authors of the article
 
 To repoduce the experiments, use the scripts `blob.py`, `higgs.py`, and `img_shift.py`.
 The parameters to be used are given in documentation of each script.
+
+## New baselines
+We run two new baselines:
+* MMD-D, with the files [deep_mmd.py](deep_mmd.py) and [deep_kernel_utils.py](deep_kernel_utils.py) taken
+from [https://github.com/fengliu90/DK-for-TST](https://github.com/fengliu90/DK-for-TST).
+* MMDAgg: with methods stored in [mmd_agg/](mmd_agg) and taken from 
+[https://github.com/antoninschrab/mmdagg-paper](https://github.com/antoninschrab/mmdagg-paper).
