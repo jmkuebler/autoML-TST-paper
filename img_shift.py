@@ -34,11 +34,9 @@ seed = 1
 np.random.seed(seed)
 set_random_seed(seed)
 
-import keras
 import tempfile
 import keras.models
 
-from keras import backend as K 
 from shift_detector import *
 from shift_locator import *
 from shift_applicator import *
@@ -46,13 +44,12 @@ from data_utils import *
 from shared_utils import *
 from deep_mmd import deep_mmd
 import os
-import sys
 import argparse
 
-
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib import rc
+
+from mmd_agg.tests import mmdagg as mmdagg_test
 
 # -------------------------------------------------
 # PLOTTING HELPERS
@@ -152,6 +149,7 @@ parser.add_argument('--pretrained', action='store_true')
 parser.add_argument('--method', type=str, default='regression')
 parser.add_argument('--discrete', action='store_true')
 parser.add_argument('--mmd', action='store_true')
+parser.add_argument('--mmdagg', action='store_true')
 
 
 args = parser.parse_args()
@@ -176,13 +174,16 @@ else:
 #     method = 'regression'
 #     use_prob = False
 mmd = args.mmd
+mmdagg = args.mmdagg
 
 print('Fitting method to use: %s' % method)
 print('Use probability: %s' % str(use_prob))
 
 # Define results path and create directory.
 path = args.path
-path += test_type + '/'
+if mmdagg:
+    path += '_mmdagg'
+path += '/' + test_type + '/'
 path += dataset + '_'
 path += shift_type + '/'
 if not os.path.exists(path):
@@ -210,6 +211,8 @@ else:
     od_tests = [OnedimensionalTest.KS.value]
     md_tests = []
     samples = [10, 20, 50, 100, 200, 500, 1000, 10000]
+    if mmdagg:
+        samples = [10, 20, 50, 100, 200]
 difference_samples = 20
 
 # Number of random runs to average results over.
@@ -244,7 +247,7 @@ elif shift_type == 'ko_shift':
     shifts = ['ko_shift_0.1',
               'ko_shift_0.5',
               'ko_shift_1.0']
-    if test_type == 'univ':
+    if test_type == 'univ' and not mmdagg:
         samples = [10, 20, 50, 100, 200, 500, 1000, 9000]
 elif shift_type == 'orig':
     shifts = ['rand', 'orig']
@@ -265,13 +268,14 @@ elif shift_type == 'medium_img_shift+ko_shift':
     shifts = ['medium_img_shift_0.5+ko_shift_0.1',
               'medium_img_shift_0.5+ko_shift_0.5',
               'medium_img_shift_0.5+ko_shift_1.0']
-    if test_type == 'univ':
+    if test_type == 'univ' and not mmdagg:
         samples = [10, 20, 50, 100, 200, 500, 1000, 9000]
 elif shift_type == 'only_zero_shift+medium_img_shift':
     shifts = ['only_zero_shift+medium_img_shift_0.1',
               'only_zero_shift+medium_img_shift_0.5',
               'only_zero_shift+medium_img_shift_1.0']
-    samples = [10, 20, 50, 100, 200, 500, 1000]
+    if not mmdagg:
+        samples = [10, 20, 50, 100, 200, 500, 1000]
 else:
     shifts = []
     
@@ -386,7 +390,7 @@ for shift_idx, shift in enumerate(shifts):
                 if DimensionalityReduction.Classif.value not in dr_techniques_plot:
                     rand_run_p_vals[si,:,rand_run] = ind_od_p_vals.flatten()
                     continue
-                if not mmd:
+                if not (mmd or mmdagg):
                     # Characterize shift via domain classifier.
                     if pretrained: # work with the output of a pretrained network as is done for BBSDs
                         print("Uses pretrained model")
@@ -403,13 +407,25 @@ for shift_idx, shift in enumerate(shifts):
                         print(len(X_te_3))
                         model, score, (X_tr_dcl, y_tr_dcl, y_tr_old, X_te_dcl, y_te_dcl, y_te_old) = shift_locator.build_model(X_tr_3, y_tr_3, X_te_3, y_te_3, time_limit=time_limit, method=method)
                         test_indices, test_perc, dec, p_val = shift_locator.most_likely_shifted_samples(model, X_te_dcl, y_te_dcl, use_prob=use_prob)
-                else:
+                elif mmd:
                     # run deep MMD test by Liu et al
                     # make sample for MMD test.
                     sample_p = X_tr_3[:len(X_te_3)]
                     sample_q = X_te_3
                     dec, p_val = deep_mmd(sample_p, sample_q, sign_level=sign_level, datset=dataset)
 
+                elif mmdagg:
+                    sample_p = X_tr_3[:len(X_te_3)]
+                    sample_q = X_te_3
+                    # # check type I:
+                    # joint = np.concatenate((sample_p, sample_q))
+                    # np.random.shuffle(joint)
+                    # sample_p, sample_q = joint[:len(joint)//2], joint[len(joint)//2:]
+
+                    dec = mmdagg_test(seed=0, X=sample_p, Y=sample_q, alpha=sign_level, kernel_type="gaussian",
+                                      approx_type="permutation", weights_type="uniform", l_minus=10, l_plus=20, B1=500,
+                                      B2=500, B3=100)
+                    p_val = dec  # because the method does not compute p-values we just hack it like this.
 
                 rand_run_p_vals[si,:,rand_run] = np.append(ind_od_p_vals.flatten(), p_val)
 
