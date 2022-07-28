@@ -152,6 +152,7 @@ parser.add_argument('--method', type=str, default='regression')
 parser.add_argument('--discrete', action='store_true')
 parser.add_argument('--mmd', action='store_true')
 parser.add_argument('--mmdagg', action='store_true')
+parser.add_argument('--framework', type=str, default='autogluon')
 
 
 args = parser.parse_args()
@@ -160,6 +161,13 @@ dataset = args.dataset
 shift_type = args.shift_type
 test_type = args.test_type
 time_limit = int(args.time_limit)
+framework = args.framework
+if framework == 'autogluon':
+    dc_framework = DifferenceClassifier.AUTOGLUON
+elif framework == 'autosklearn':
+    dc_framework = DifferenceClassifier.AUTOSKLEARN
+else:
+    raise ValueError('framework must be either autogluon or autosklearn')
 pretrained = args.pretrained
 print('Using pretrained model: %s' % pretrained)
 method = args.method
@@ -401,12 +409,11 @@ for shift_idx, shift in enumerate(shifts):
                         pretrained_model = shift_reductor.fit_reductor()
                         X_tr_red = shift_reductor.reduce(pretrained_model, X_val_3)
                         X_te_red = shift_reductor.reduce(pretrained_model, X_te_3)
-                        shift_locator = ShiftLocator(orig_dims, dc=DifferenceClassifier.AUTOGLUON, sign_level=sign_level)
+                        shift_locator = ShiftLocator(orig_dims, dc=dc_framework, sign_level=sign_level)
                         model, score, (X_tr_dcl, y_tr_dcl, y_tr_old, X_te_dcl, y_te_dcl, y_te_old) = shift_locator.build_model(X_tr_red, y_val_3, X_te_red, y_te_3, time_limit=time_limit, method=method)
                         test_indices, test_perc, dec, p_val = shift_locator.most_likely_shifted_samples(model, X_te_dcl, y_te_dcl, use_prob=use_prob)
                     else:
-                        shift_locator = ShiftLocator(orig_dims, dc=DifferenceClassifier.AUTOGLUON, sign_level=sign_level)
-                        print(len(X_te_3))
+                        shift_locator = ShiftLocator(orig_dims, dc=dc_framework, sign_level=sign_level)
                         model, score, (X_tr_dcl, y_tr_dcl, y_tr_old, X_te_dcl, y_te_dcl, y_te_old) = shift_locator.build_model(X_tr_3, y_tr_3, X_te_3, y_te_3, time_limit=time_limit, method=method)
                         test_indices, test_perc, dec, p_val = shift_locator.most_likely_shifted_samples(model, X_te_dcl, y_te_dcl, use_prob=use_prob)
                 elif mmd:

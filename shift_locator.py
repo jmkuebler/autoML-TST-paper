@@ -12,6 +12,8 @@ from shift_tester import *
 import pandas as pd
 from autogluon.tabular import TabularPredictor, TabularDataset
 
+import autosklearn.regression
+
 import keras
 import keras_resnet
 from keras import optimizers
@@ -23,6 +25,7 @@ class DifferenceClassifier(Enum):
     FFNNDCL = 1
     FLDA = 2
     AUTOGLUON = 3
+    AUTOSKLEARN = 4
 
 
 class AnomalyDetection(Enum):
@@ -94,6 +97,8 @@ class ShiftLocator:
             return self.fisher_lda_difference_detector(X_tr, X_te, balanced=balanced)
         elif self.dc == DifferenceClassifier.AUTOGLUON:
             return self.autogluon_witness(X_tr, y_tr, X_te, y_te, bal=balanced, time_limit=time_limit, method=method)
+        elif self.dc == DifferenceClassifier.AUTOSKLEARN:
+            return self.autosklearn_witness(X_tr, y_tr, X_te, y_te, bal=balanced, time_limit=time_limit, method=method)
         elif self.ac == AnomalyDetection.OCSVM:
             return self.one_class_svm(X_tr, X_te, balanced=balanced)
 
@@ -141,7 +146,37 @@ class ShiftLocator:
             # return most_conf_test_indices, most_conf_test_perc, p_val < self.sign_level, p_val
             return most_conf_test_indices, None, p_val < self.sign_level, p_val
 
-        if self.dc == DifferenceClassifier.FFNNDCL:
+        elif self.dc == DifferenceClassifier.AUTOSKLEARN:
+            y_te_new_pred = model.predict(X_te_new)
+            del model
+
+            # # Get most anomalous indices sorted in descending order.
+            # for the witness approach, the shifted samples are labelled with 0, hence we need the smallest values
+            most_conf_test_indices = np.argsort(y_te_new_pred)
+            # most_conf_test_perc = np.sort(y_te_new_pred[:,1])[::-1]
+
+            # Test whether witness significance.
+            p_samp = y_te_new_pred[y_te_new == 1]
+            q_samp = y_te_new_pred[y_te_new == 0]
+            # print(len(p_samp), len(q_samp))
+            c = len(p_samp) / (len(p_samp) + len(q_samp))
+            # c = 1-c
+            signal = (np.mean(p_samp) - np.mean(q_samp))
+            p_val = 0
+            permutations = 300
+            for i in range(0, permutations):
+                np.random.shuffle(y_te_new_pred)
+                p_samp = y_te_new_pred[y_te_new == 1]
+                q_samp = y_te_new_pred[y_te_new == 0]
+                signal_perm = np.mean(p_samp) - np.mean(q_samp)
+
+                if signal <= np.float(signal_perm):
+                    p_val += np.float(1 / permutations)
+
+            # return most_conf_test_indices, most_conf_test_perc, p_val < self.sign_level, p_val
+            return most_conf_test_indices, None, p_val < self.sign_level, p_val
+
+        elif self.dc == DifferenceClassifier.FFNNDCL:
 
             # Predict class assignments.
             y_te_new_pred = model.predict(X_te_new.reshape(len(X_te_new), self.orig_dims[0], self.orig_dims[1],
@@ -159,7 +194,7 @@ class ShiftLocator:
             p_val = shift_tester.test_shift_bin(successes, len(y_te_new_pred_argm), self.ratio)
 
             return most_conf_test_indices, most_conf_test_perc, p_val < self.sign_level, p_val
-        if self.dc == DifferenceClassifier.FLDA:
+        elif self.dc == DifferenceClassifier.FLDA:
             y_te_new_pred = model.predict(X_te_new)
 
             y_te_new_pred_probs = model.predict_proba(X_te_new)
@@ -192,6 +227,17 @@ class ShiftLocator:
         eval_metric = "accuracy" if method == "binary" else "mean_squared_error"
         model = TabularPredictor(label="label", problem_type=method, eval_metric=eval_metric,
                                      verbosity=0).fit(train_data, presets='best_quality', time_limit=time_limit)
+
+        return model, None, (X_tr_dcl, y_tr_dcl, y_tr_old, X_te_dcl, y_te_dcl, y_te_old)
+
+    def autosklearn_witness(self, X_tr, y_tr, X_te, y_te, time_limit=20, bal=False, method='regression'):
+        X_tr_dcl, y_tr_dcl, y_tr_old, X_te_dcl, y_te_dcl, y_te_old = self.__prepare_difference_detector(X_tr, y_tr,
+                                                                                                        X_te, y_te,
+                                                                                                        balanced=bal)
+
+        model = autosklearn.regression.AutoSklearnRegressor(time_left_for_this_task=time_limit, n_jobs=-1,
+                                                            memory_limit=None)
+        model.fit(X_tr_dcl, y_tr_dcl)
 
         return model, None, (X_tr_dcl, y_tr_dcl, y_tr_old, X_te_dcl, y_te_dcl, y_te_old)
 
