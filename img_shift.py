@@ -31,7 +31,7 @@ Flag whether to use mmdagg instead of witness: True, False
 # -------------------------------------------------
 
 import numpy as np
-from tensorflow.random import set_seed as set_random_seed
+from tensorflow import set_random_seed
 seed = 1
 np.random.seed(seed)
 set_random_seed(seed)
