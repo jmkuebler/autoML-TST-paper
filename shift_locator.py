@@ -235,7 +235,7 @@ class ShiftLocator:
                                                                                                         X_te, y_te,
                                                                                                         balanced=bal)
 
-        model = autosklearn.regression.AutoSklearnRegressor(time_left_for_this_task=time_limit, n_jobs=4,
+        model = autosklearn.regression.AutoSklearnRegressor(time_left_for_this_task=time_limit, n_jobs=1,
                                                             memory_limit=None)
         y_tr_dcl[0] += 1e-10
         model.fit(X_tr_dcl, y_tr_dcl)
